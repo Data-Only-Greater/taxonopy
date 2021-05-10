@@ -34,6 +34,7 @@ class TaxonomyParser:
         self.prefix = level_prefix
         self.nodes = {}
         self.root_key = None
+        self.extra_attrs = set([])
 
     def find_by_name(self, name) -> Node:
         """
@@ -85,7 +86,7 @@ class TaxonomyParser:
         a List of anytree Node instances holding the leaves data
         """
         res = []
-        root = self.nodes[self.root_key]        
+        root = self.nodes[self.root_key]
         for node in PreOrderIter(root):
             if len(node.children) == 0:
                 res.append(node)
@@ -140,7 +141,15 @@ class TaxonomyParser:
         msg = """"""
         root = self.nodes[self.root_key]
         for pre, _, node in RenderTree(root):
-            msg += f"{pre}{node.name}\n"
+            
+            msg += f"{pre}{node.name}"
+            
+            for attr in self.extra_attrs:
+                if hasattr(node, attr):
+                    msg += f" {attr}={getattr(node, attr)}"
+            
+            msg += "\n"
+            
         return msg
 
     def read_from_json(self, file_name):
@@ -177,8 +186,9 @@ class TaxonomyParser:
 
         # read the root node
         root = data[f"{self.prefix}0"][0]
-        name = root["name"]
-        _ = root.pop("name")
+        name = root.pop("name")
+        
+        self.extra_attrs |= set(root.keys())
         
         self.nodes[name] = Node(name, **root)
         self.root_key = name
@@ -192,12 +202,16 @@ class TaxonomyParser:
             for n in nodes:
                 
                 assert "name" in n
-                name = n["name"]
-                parent = n["parent"]
-                                
+                assert "parent" in n
+                name = n.pop("name")
+                parent = n.pop("parent")
+                
+                self.extra_attrs |= set(n.keys())
+                
                 self.nodes[name] = Node(
                     name,
-                    parent=self.nodes[parent]
+                    parent=self.nodes[parent],
+                    **n
                 )
     
     def write_to_json(self, file_name):
@@ -215,6 +229,10 @@ class TaxonomyParser:
                 node_dict = {"name": node.name}
                 if node.parent is not None:
                     node_dict["parent"]= node.parent.name
+                
+                for attr in self.extra_attrs:
+                    if hasattr(node, attr):
+                        node_dict[attr] = getattr(node, attr)
                 
                 node_list.append(node_dict)
             
