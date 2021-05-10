@@ -2,7 +2,7 @@
 import json
 import re
 
-from anytree import Node, RenderTree, PreOrderIter
+from anytree import LevelOrderGroupIter, Node, RenderTree, PreOrderIter
 from anytree.exporter import DotExporter
 from anytree.search import find, findall
 
@@ -23,8 +23,10 @@ class TaxonomyParser:
 
     Attributes
     ----------
-    prefix: str with the prefix character for each level in the JSON representation
-    nodes: dict with node name str as key and anytree Node instance as value which contains all the nodes of the taxonomy tree
+    prefix: str with the prefix character for each level in the JSON
+            representation
+    nodes: dict with node name str as key and anytree Node instance as value
+           which contains all the nodes of the taxonomy tree
     root_key: str identifying the root node for fast retrieval
     """
 
@@ -75,7 +77,8 @@ class TaxonomyParser:
     def get_leaves(self):
         """
         Get all the leaf nodes in the tree
-        This function is used for fast retrieval of the regex to be applied to event types
+        This function is used for fast retrieval of the regex to be applied to
+        event types
 
         Returns
         -------
@@ -90,11 +93,13 @@ class TaxonomyParser:
 
     def export(self, full=False):
         """
-        Export tree into graphviz format in both *.dot file and image *.png file
+        Export tree into graphviz format in both *.dot file and image *.png
+        file
 
         Parameters
         ----------
-        full: boolean value, if True also the regex mappings are printed in the resulting file
+        full: boolean value, if True also the regex mappings are printed in
+              the resulting file
         """
         def nodeattr_fn(node):
             return f'style=filled color={COLOR_SCHEME[node.depth]}'
@@ -138,7 +143,7 @@ class TaxonomyParser:
             msg += f"{pre}{node.name}\n"
         return msg
 
-    def read_from_json(self, fname):
+    def read_from_json(self, file_name):
         """
         Read the taxonomy from a JSON file given as input
         The JSON file needs to have the following format:
@@ -160,45 +165,60 @@ class TaxonomyParser:
 
         Parameters
         ----------
-        fname: str with the name of the file containing the taxonomy
+        file_name: str with the name of the file containing the taxonomy
         """
 
         self.nodes = {}
-        try:
-            with open(fname, "r") as f:
-                data = json.load(f)
-                n_levels = len(list(data.keys()))
+        
+        with open(file_name, "r") as f:
+            data = json.load(f)
+        
+        n_levels = len(list(data.keys()))
 
-                # read the root node
-                root = data[f"{self.prefix}0"][0]
-                name = root["name"]
-                _ = root.pop("name")
+        # read the root node
+        root = data[f"{self.prefix}0"][0]
+        name = root["name"]
+        _ = root.pop("name")
+        
+        self.nodes[name] = Node(name, **root)
+        self.root_key = name
+
+        # populate the tree
+        for k in range(1, n_levels):
+            
+            key = f"{self.prefix}{k}"
+            nodes = data[key]
+
+            for n in nodes:
                 
-                self.nodes[name] = Node(name, **root)
-                self.root_key = name
-
-                # populate the tree
-                for k in range(1, n_levels):
-                    
-                    key = f"{self.prefix}{k}"
-                    nodes = data[key]
-
-                    for n in nodes:
-                        try:
-                            assert "name" in n
-                            name = n["name"]
-                            _ = n.pop("name")
-                            parent = n["parent"]
-                            _ = n.pop("parent")
-                            
-                            self.nodes[name] = Node(
-                                name,
-                                parent=self.nodes[parent],
-                                **n
-                            )
-                        except AssertionError:
-                            print(f"Malformed node representation: {n}")
-                        except KeyError:
-                            print(f"Detected a dangling node: {n['name']}")
-
-                return taxonomy
+                assert "name" in n
+                name = n["name"]
+                parent = n["parent"]
+                                
+                self.nodes[name] = Node(
+                    name,
+                    parent=self.nodes[parent]
+                )
+    
+    def write_to_json(self, file_name):
+        
+        output_dict = {}
+        
+        for i, children in enumerate(LevelOrderGroupIter(
+                                                self.nodes[self.root_key])):
+            
+            node_list = []
+            
+            for node in children:
+                
+                # Must have name and parent
+                node_dict = {"name": node.name}
+                if node.parent is not None:
+                    node_dict["parent"]= node.parent.name
+                
+                node_list.append(node_dict)
+            
+            output_dict[f"L{i}"] = node_list
+        
+        with open(file_name, "w") as f:
+            f.write(json.dumps(output_dict, indent=4))
