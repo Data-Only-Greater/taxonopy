@@ -4,7 +4,8 @@ import json
 
 from anytree import LevelOrderGroupIter, Node, RenderTree
 from anytree.exporter import UniqueDotExporter
-from anytree.search import find
+from anytree.resolver import Resolver
+from anytree.search import findall
 
 # TODO make the color scheme dynamic
 COLOR_SCHEME = ["aliceblue", "antiquewhite", "azure", "coral", "palegreen"]
@@ -27,25 +28,8 @@ class TaxonomyParser:
     
     def __init__(self, level_prefix = "L"):
         self.prefix = level_prefix
-        self.nodes = {}
-        self.root_key = None
+        self.root_node = None
         self.extra_attrs = set([])
-    
-    def find_by_name(self, name) -> Node:
-        """
-        Retrieve a node by its name
-        
-        Parameters
-        ----------
-        name: str holding the name to be looked for
-        
-        Returns
-        -------
-        node: an anytree Node instance with the seeked node
-        """
-        root = self.nodes[self.root_key]
-        node = find(root, lambda node: node.name == name)
-        return node
     
     def from_json(self, filepath_or_data):
         """
@@ -71,6 +55,7 @@ class TaxonomyParser:
         file_name: str with the name of the file containing the taxonomy
         """
         
+        r = Resolver()
         data = json.loads(_get_data(filepath_or_data))
         n_levels = len(list(data.keys()))
         
@@ -78,11 +63,8 @@ class TaxonomyParser:
         root = data[f"{self.prefix}0"][0]
         name = root.pop("name")
         
-        self.nodes = {}
+        self.root_node = Node(name, **root)
         self.extra_attrs |= set(root.keys())
-        
-        self.nodes[name] = Node(name, **root)
-        self.root_key = name
         
         # populate the tree
         for k in range(1, n_levels):
@@ -99,11 +81,15 @@ class TaxonomyParser:
                 
                 self.extra_attrs |= set(n.keys())
                 
-                self.nodes[name] = Node(
-                    name,
-                    parent=self.nodes[parent],
-                    **n
-                )
+                parent_resolution = parent.strip('/').split('/')
+                
+                if len(parent_resolution) == 1:
+                    parent_node = self.root_node
+                else:
+                    parent_relative = '/'.join(parent_resolution[1:])
+                    parent_node = r.get(self.root_node, parent_relative)
+                
+                Node(name, parent=parent_node, **n)
     
     def to_dot(self, file_name=None):
         
@@ -112,7 +98,7 @@ class TaxonomyParser:
                      'style=filled '
                     f'color={COLOR_SCHEME[node.depth]}')
         
-        root = self.nodes[self.root_key]
+        root = self.root_node
         dot = UniqueDotExporter(
             root,
             nodeattrfunc=nodeattr_fn,
@@ -137,8 +123,7 @@ class TaxonomyParser:
         
         output_dict = {}
         
-        for i, children in enumerate(LevelOrderGroupIter(
-                                                self.nodes[self.root_key])):
+        for i, children in enumerate(LevelOrderGroupIter(self.root_node)):
             
             node_list = []
             
@@ -146,8 +131,15 @@ class TaxonomyParser:
                 
                 # Must have name and parent
                 node_dict = {"name": node.name}
+                
                 if node.parent is not None:
-                    node_dict["parent"]= node.parent.name
+                    
+                    node_path = node.separator.join([""] +
+                                            [str(x.name) for x in node.path])
+                    node_resolution = node_path.strip('/').split('/')
+                    parent_path = '/'.join(node_resolution[:-1])
+                    
+                    node_dict["parent"] = parent_path
                 
                 for attr in self.extra_attrs:
                     if hasattr(node, attr):
@@ -165,6 +157,22 @@ class TaxonomyParser:
         with open(file_name, "w") as f:
             f.write(json_text)
     
+    def find_by_name(self, name) -> Node:
+        """
+        Retrieve a node by its name
+        
+        Parameters
+        ----------
+        name: str holding the name to be looked for
+        
+        Returns
+        -------
+        node: an anytree Node instance with the seeked node
+        """
+        root = self.root_node
+        node = findall(root, lambda node: node.name == name)
+        return node
+    
     def __str__(self):
         """
         ASCII representation of the tree similarly to a directory structure
@@ -174,7 +182,7 @@ class TaxonomyParser:
         msg: a str containing the output taxonomy visualization
         """
         msg = """"""
-        root = self.nodes[self.root_key]
+        root = self.root_node
         for pre, _, node in RenderTree(root):
             
             msg += f"{pre}{node.name}"
