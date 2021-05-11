@@ -71,7 +71,7 @@ class TaxonomyParser:
         file_name: str with the name of the file containing the taxonomy
         """
         
-        data = _get_data(filepath_or_data)
+        data = json.loads(_get_data(filepath_or_data))
         n_levels = len(list(data.keys()))
         
         # read the root node
@@ -192,7 +192,7 @@ def _get_data(filepath_or_data):
     
     if _file_exists(filepath_or_data):
         with open(filepath_or_data, "r") as f:
-            filepath_or_data = json.load(f)
+            filepath_or_data = f.read()
     
     return filepath_or_data
 
