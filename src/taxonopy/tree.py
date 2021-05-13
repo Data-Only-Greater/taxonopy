@@ -31,6 +31,30 @@ class Tree:
         self.root_node = None
         self.extra_attrs = set([])
     
+    def from_dict(self, data):
+        
+        n_levels = len(list(data.keys()))
+        
+        # read the root node
+        root = data[f"{self.prefix}0"][0]
+        assert "name" in root
+        name = root.pop("name")
+        self.add_node(name, **root)
+        
+        # populate the tree
+        for k in range(1, n_levels):
+            
+            key = f"{self.prefix}{k}"
+            nodes = data[key]
+            
+            for n in nodes:
+                
+                assert "name" in n
+                assert "parent" in n
+                name = n.pop("name")
+                parent = n.pop("parent")
+                self.add_node(name, parent, **n)
+    
     def from_json(self, filepath_or_data):
         """
         Read the taxonomy from a JSON string or file path given as input
@@ -56,27 +80,40 @@ class Tree:
         """
         
         data = json.loads(_get_data(filepath_or_data))
-        n_levels = len(list(data.keys()))
+        self.from_dict(data)
+    
+    def to_dict(self):
         
-        # read the root node
-        root = data[f"{self.prefix}0"][0]
-        assert "name" in root
-        name = root.pop("name")
-        self.add_node(name, **root)
+        if self.root_node is None: return {}
         
-        # populate the tree
-        for k in range(1, n_levels):
+        output_dict = {}
+        
+        for i, children in enumerate(LevelOrderGroupIter(self.root_node)):
             
-            key = f"{self.prefix}{k}"
-            nodes = data[key]
+            node_list = []
             
-            for n in nodes:
+            for node in children:
                 
-                assert "name" in n
-                assert "parent" in n
-                name = n.pop("name")
-                parent = n.pop("parent")
-                self.add_node(name, parent, **n)
+                # Must have name and parent
+                node_dict = {"name": node.name}
+                
+                if node.parent is not None:
+                    
+                    node_path = get_node_path(node)
+                    node_resolution = node_path.strip('/').split('/')
+                    parent_path = '/'.join(node_resolution[:-1])
+                    
+                    node_dict["parent"] = parent_path
+                
+                for attr in self.extra_attrs:
+                    if hasattr(node, attr):
+                        node_dict[attr] = getattr(node, attr)
+                
+                node_list.append(node_dict)
+            
+            output_dict[f"L{i}"] = node_list
+        
+        return output_dict
     
     def to_dot(self, file_name=None):
         
@@ -108,33 +145,7 @@ class Tree:
     
     def to_json(self, file_name=None):
         
-        output_dict = {}
-        
-        for i, children in enumerate(LevelOrderGroupIter(self.root_node)):
-            
-            node_list = []
-            
-            for node in children:
-                
-                # Must have name and parent
-                node_dict = {"name": node.name}
-                
-                if node.parent is not None:
-                    
-                    node_path = get_node_path(node)
-                    node_resolution = node_path.strip('/').split('/')
-                    parent_path = '/'.join(node_resolution[:-1])
-                    
-                    node_dict["parent"] = parent_path
-                
-                for attr in self.extra_attrs:
-                    if hasattr(node, attr):
-                        node_dict[attr] = getattr(node, attr)
-                
-                node_list.append(node_dict)
-            
-            output_dict[f"L{i}"] = node_list
-        
+        output_dict = self.to_dict()
         json_text = json.dumps(output_dict, indent=4)
         
         if file_name is None:
@@ -179,11 +190,18 @@ class Tree:
         
         parent_node = self.find_by_path(parent)
         Node(name, parent=parent_node, **kwargs)
-        
+    
     def delete_node(self, path):
         node = self.find_by_path(path)
         node.parent = None
+    
+    def update_node(self, path, **kwargs):
         
+        node = self.find_by_path(path)
+        
+        for attr, value in kwargs.items():
+            setattr(node, attr, value)
+    
     def __str__(self):
         """
         ASCII representation of the tree similarly to a directory structure
@@ -207,7 +225,7 @@ class Tree:
         return msg
 
 
-class CatTree(Tree):
+class SCHTree(Tree):
     
     def add_node(self, name, parent=None, **kwargs):
         

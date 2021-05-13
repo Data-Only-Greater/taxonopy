@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="taxonomy-parser",
+    name="taxonopy",
     version="0.0.1",
     author="Mathew Topper",
     author_email="mathew.topper@dataonlygreater.com",
