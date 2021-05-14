@@ -17,9 +17,9 @@ limitations under the License.
 import sys
 import argparse
 import logging
-import inspect
+import functools
 
-__all__ = ['ArgumentHandler','LOG_LEVEL','subcmd','reset_registered_subcommands']
+__all__ = ['ArgumentHandler','LOG_LEVEL','subcmd']
 
 LOG_LEVEL='log_level'
 
@@ -36,40 +36,24 @@ def default_log_config(level,args):
 #################################
 # decorator
 #################################
-registered_subcommands = {}
-registered_subcommands_help = {}
-def subcmd(arg=None, **kwargs):
-    """
-    This decorator is used to register functions as subcommands with instances
-    of ArgumentHandler.
-    """
-    if inspect.isfunction(arg):
-        return subcmd_fxn(arg,arg.__name__, kwargs)
-    else:
-        def inner_subcmd(fxn):
-            return subcmd_fxn(fxn, arg, kwargs)
 
-        return inner_subcmd
-
-def subcmd_fxn(cmd_fxn,name,kwargs):
-    global registered_subcommands, registered_subcommands_help
-
-    # get the name of the command
-    if name is None:
-        name = cmd_fxn.__name__
-
-    registered_subcommands[name] = cmd_fxn
-    registered_subcommands_help[name] = kwargs.pop('help','')
-
-    return cmd_fxn
-
-def reset_registered_subcommands():
-    """
-    Forget about all subcommands that have been registered using @subcmd.
-    """
-    global registered_subcommands, registered_subcommands_help
-    registered_subcommands = {}
-    registered_subcommands_help = {}
+def subcmd(name,
+           registered_subcommands,
+           registered_subcommands_help,
+           help=''):
+    
+    def decorator_subcmd(func):
+        
+        registered_subcommands[name] = func
+        registered_subcommands_help[name] = help
+        
+        @functools.wraps(func)
+        def wrapper_subcmd(*args, **kwargs):
+            return func
+        
+        return wrapper_subcmd
+    
+    return decorator_subcmd
 
 
 class ErrorParser(argparse.ArgumentParser):
@@ -99,7 +83,10 @@ class ArgumentHandler(ErrorParser):
 
         ### extract any special keywords here
         self._use_subcommand_help = kwargs.pop('use_subcommand_help',False)
-
+        self._registered_subcommands = kwargs.pop('registered_subcommands', {})
+        self._registered_subcommands_help = kwargs.pop(
+                                            'registered_subcommands_help', {})
+        
         # some internal logic management info
         self._logging_argument = None
         self._logging_config_fxn = None
@@ -215,15 +202,14 @@ class ArgumentHandler(ErrorParser):
         """
         Works the same as `argparse.ArgumentParser.parse_args`.
         """
-        global registered_subcommands, registered_subcommands_help
 
         if self._has_parsed:
             raise Exception('ArgumentHandler.parse_args can only be called once')
 
         # collect subcommands into _subcommand_lookup
-        for cn,cf in registered_subcommands.items():
+        for cn,cf in self._registered_subcommands.items():
             self._subcommand_lookup[cn] = cf
-            self._subcommand_help[cn] = registered_subcommands_help[cn]
+            self._subcommand_help[cn] = self._registered_subcommands_help[cn]
 
         if len(self._subcommand_lookup) == 0:
             self._use_subcommands = False
