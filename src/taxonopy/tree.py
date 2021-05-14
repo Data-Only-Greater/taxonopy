@@ -26,25 +26,27 @@ class Tree:
     root_key: str identifying the root node for fast retrieval
     """
     
-    def __init__(self, level_prefix = "L"):
+    def __init__(self, level_prefix="L"):
         self.prefix = level_prefix
         self.root_node = None
         self.extra_attrs = set([])
     
-    def from_dict(self, data):
+    @classmethod
+    def from_dict(cls, data, level_prefix="L"):
         
         n_levels = len(list(data.keys()))
+        new_tree = cls(level_prefix)
         
         # read the root node
-        root = data[f"{self.prefix}0"][0]
+        root = data[f"{new_tree.prefix}0"][0]
         assert "name" in root
         name = root.pop("name")
-        self.add_node(name, **root)
+        new_tree.add_node(name, **root)
         
         # populate the tree
         for k in range(1, n_levels):
             
-            key = f"{self.prefix}{k}"
+            key = f"{new_tree.prefix}{k}"
             nodes = data[key]
             
             for n in nodes:
@@ -53,9 +55,12 @@ class Tree:
                 assert "parent" in n
                 name = n.pop("name")
                 parent = n.pop("parent")
-                self.add_node(name, parent, **n)
+                new_tree.add_node(name, parent, **n)
+        
+        return new_tree
     
-    def from_json(self, filepath_or_data):
+    @classmethod
+    def from_json(cls, filepath_or_data, level_prefix="L"):
         """
         Read the taxonomy from a JSON string or file path given as input
         The JSON file needs to have the following format:
@@ -80,7 +85,9 @@ class Tree:
         """
         
         data = json.loads(_get_data(filepath_or_data))
-        self.from_dict(data)
+        new_tree = cls.from_dict(data, level_prefix)
+        
+        return new_tree
     
     def to_dict(self):
         

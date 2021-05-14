@@ -1,5 +1,6 @@
 """
 Copyright 2015 Derek Ruths
+Copyright 2021 Mathew Topper
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,13 +20,19 @@ import argparse
 import logging
 import functools
 
-__all__ = ['ArgumentHandler','LOG_LEVEL','subcmd']
+__all__ = ['ArgumentHandler','LOG_LEVEL','subcmd','parse_vars']
+
+
+### LOGGING
 
 LOG_LEVEL='log_level'
 
-LOG_LEVEL_STR_LOOKUP = { logging.DEBUG:'DEBUG', logging.INFO:'INFO',
-                        logging.WARNING:'WARNING', logging.ERROR:'ERROR',
-                        logging.CRITICAL:'CRITICAL' }
+LOG_LEVEL_STR_LOOKUP = { logging.DEBUG:     'DEBUG',
+                         logging.INFO:      'INFO',
+                         logging.WARNING:   'WARNING',
+                         logging.ERROR:     'ERROR',
+                         logging.CRITICAL:  'CRITICAL' }
+
 
 def default_log_config(level,args):
     """
@@ -33,9 +40,41 @@ def default_log_config(level,args):
     """
     logging.basicConfig(level=level)
 
-#################################
-# decorator
-#################################
+### KEY-VALUE PAIRS
+
+def parse_vars(items):
+    """
+    Parse a series of key-value pairs and return a dictionary
+    
+    Source: https://stackoverflow.com/a/52014520
+    """
+    d = {}
+
+    if items:
+        for item in items:
+            key, value = _parse_var(item)
+            d[key] = value
+    return d
+
+
+def _parse_var(s):
+    """
+    Parse a key, value pair, separated by '='
+    That's the reverse of ShellArgs.
+
+    On the command line (argparse) a declaration will typically look like:
+        foo=hello
+    or
+        foo="hello world"
+    """
+    items = s.split('=')
+    key = items[0].strip() # we remove blanks around keys, as is logical
+    if len(items) > 1:
+        # rejoin the rest:
+        value = '='.join(items[1:])
+    return (key, value)
+
+### SUBCOMMAND DECORATOR
 
 def subcmd(name,
            registered_subcommands,
@@ -55,6 +94,7 @@ def subcmd(name,
     
     return decorator_subcmd
 
+### ERROR HANDLING CLASS
 
 class ErrorParser(argparse.ArgumentParser):
     def error(self, message):
@@ -62,10 +102,7 @@ class ErrorParser(argparse.ArgumentParser):
         self.print_help()
         sys.exit(2)
 
-
-#########################
-# ArgumentHandler class
-#########################
+### ARGUMENTHANDLER CLASS
 
 class ArgumentHandler(ErrorParser):
 
