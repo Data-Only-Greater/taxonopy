@@ -155,3 +155,42 @@ def _schema_add(parser,context,topargs):
     
     if args.dry_run: return
     schema.to_json(out)
+
+
+@subcmd('delete',
+        schemacommands,
+        schemacommands_help,
+        help="delete field from the schema")
+def _schema_delete(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of field to delete',
+                        action="store")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    parser.add_argument('-o', '--out',
+                        help=('output path for the schema (default is to '
+                              'overwrite)'),
+                        action="store")
+    parser.add_argument('--dry-run',
+                        help=('show new schema without saving'),
+                        action="store_true")
+    
+    args = parser.parse_args(topargs)
+    
+    if args.out is not None:
+        out = args.out
+    else:
+        out = args.schema
+    
+    from .tree import SCHTree
+    
+    schema = SCHTree.from_json(args.schema)
+    schema.delete_node(args.path)
+    
+    print(schema)
+    
+    if args.dry_run: return
+    schema.to_json(out)
