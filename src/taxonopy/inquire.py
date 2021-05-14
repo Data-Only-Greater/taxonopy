@@ -133,7 +133,7 @@ class RecordBuilder:
         if not value: return
         
         node_attr["value"] = value
-        self._copy_node_to_record(record, node, **node_attr)
+        _copy_node_to_record(record, node, **node_attr)
     
     def _select_from_list(self, record, node, node_attr, existing=None):
         
@@ -157,7 +157,7 @@ class RecordBuilder:
             if choice == "no": return
         
         # Add the node to the record if required
-        self._copy_node_to_record(record, node, **node_attr)
+        _copy_node_to_record(record, node, **node_attr)
         
         # Gather names of children
         choices = [x.name for x in node.children]
@@ -176,7 +176,7 @@ class RecordBuilder:
         
         chosen_node = self._schema.find_by_path(choice_path)
         chosen_node_attr = get_node_attr(chosen_node, blacklist=["name"])
-        self._copy_node_to_record(record, chosen_node, **chosen_node_attr)
+        _copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_node.children) < 1: return
             
@@ -231,7 +231,7 @@ class RecordBuilder:
         if len(chosen) < 1: return
             
         # Add the parent node if it's not already in the tree
-        self._copy_node_to_record(record, node, **node_attr)
+        _copy_node_to_record(record, node, **node_attr)
         
         chosen_nodes = []
         
@@ -244,28 +244,29 @@ class RecordBuilder:
             if len(chosen_node.children) > 0:
                 chosen_nodes.append(chosen_node)
             
-            self._copy_node_to_record(record, chosen_node, **chosen_node_attr)
+            _copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_nodes) < 1: return
             
         new_iter = iter(chosen_nodes)
         self._iters.append(new_iter)
+
+
+def _copy_node_to_record(self, record,
+                               node,
+                               **node_attr):
     
-    def _copy_node_to_record(self, record,
-                                   node,
-                                   **node_attr):
-        
-        parent_path = get_parent_path(node)
-        
-        if not parent_path:
-            record.add_node(node.name, **node_attr)
-            return
-        
-        try:
-            node_path = get_node_path(node)
-            record.find_by_path(node_path)
-        except ChildResolverError:
-            record.add_node(node.name, parent_path, **node_attr)
+    parent_path = get_parent_path(node)
+    
+    if not parent_path:
+        record.add_node(node.name, **node_attr)
+        return
+    
+    try:
+        node_path = get_node_path(node)
+        record.find_by_path(node_path)
+    except ChildResolverError:
+        record.add_node(node.name, parent_path, **node_attr)
 
 
 def _record_has_node(record, node_path):

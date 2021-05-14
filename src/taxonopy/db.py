@@ -43,7 +43,7 @@ def new_record(schema_path="schema.json",
         node = record.find_by_path("Title")
         print(record)
         
-        message = f"Store record with title '{node.value}?'"
+        message = f"Store record with title '{node.value}'?"
         choice = inquirer.list_input(message,
                                      render=ConsoleRender(theme=MyTheme()),
                                      choices=['yes', 'retry', 'quit'],

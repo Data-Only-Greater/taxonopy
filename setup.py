@@ -21,8 +21,12 @@ setuptools.setup(
     python_requires=">=3.6",
     install_requires=[
         'anytree',
+        'blessed',
         'inquirer',
         'tinydb'
     ],
+    entry_points = {
+        'console_scripts': ['taxonopy=taxonopy.cli:main'],
+    }
 )
 
