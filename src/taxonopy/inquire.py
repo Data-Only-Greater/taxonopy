@@ -252,9 +252,7 @@ class RecordBuilder:
         self._iters.append(new_iter)
 
 
-def _copy_node_to_record(self, record,
-                               node,
-                               **node_attr):
+def _copy_node_to_record(record, node, **node_attr):
     
     parent_path = get_parent_path(node)
     

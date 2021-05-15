@@ -30,8 +30,7 @@ class DataBase:
 def new_record(schema_path="schema.json",
                db_path="db.json"):
     
-    schema = SCHTree()
-    schema.from_json(schema_path)
+    schema = SCHTree.from_json(schema_path)
     db = DataBase(db_path)
     
     builder = RecordBuilder(schema)
