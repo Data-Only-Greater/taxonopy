@@ -50,6 +50,26 @@ def _db(parser,context,topargs):
     handler.run(topargs)
 
 
+@subcmd('list',
+        dbcommands,
+        dbcommands_help,
+        help="list node for all records")
+def _db_list(parser,context,topargs):
+    
+    parser.add_argument('--path',
+                        help='path of field to display (default is root)',
+                        action="store")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_nodes
+    show_nodes(args.path, args.db)
+
+
 @subcmd('new',
         dbcommands,
         dbcommands_help,

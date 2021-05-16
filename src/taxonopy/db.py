@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import inquirer
+from anytree.resolver import ChildResolverError
 from inquirer.render.console import ConsoleRender
 from tinydb import table, TinyDB, Query
 
@@ -16,6 +17,12 @@ class DataBase:
                           indent=4,
                           separators=(',', ': '))
     
+    def add(self, record):
+        self._db.insert(record.to_dict())
+    
+    def all(self):
+        return {doc.doc_id: SCHTree.from_dict(dict(doc)) for doc in self._db}
+    
     def count(self, node_path, value=None):
         return self._db.count(_make_query(node_path, value))
     
@@ -23,9 +30,6 @@ class DataBase:
         query = _make_query(node_path, value, exact)
         return {doc.doc_id: SCHTree.from_dict(dict(doc))
                                         for doc in self._db.search(query)}
-    
-    def add(self, record):
-        self._db.insert(record.to_dict())
     
     def replace(self, doc_id, record):
         self._db.remove(doc_ids=[doc_id])
@@ -72,6 +76,26 @@ def new_record(schema_path="schema.json",
         
         db.add(record)
         return
+
+def show_nodes(path=None, db_path="db.json"):
+    
+    db = DataBase(db_path)
+    records = db.all()
+    
+    for record in records.values():
+        
+        if path is None:
+            node = record.root_node
+        else:
+            
+            try: 
+                node = record.find_by_path(path)
+            except ChildResolverError:
+                continue
+        
+        msg_str = f"{node.name}"
+        if hasattr(node, "value"): msg_str += f": {node.value}"
+        print(msg_str)
 
 
 def show_records(path, value=None, exact=False, db_path="db.json"):
