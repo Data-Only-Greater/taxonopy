@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+from anytree.resolver import ChildResolverError
 
 from .arghandler import ArgumentHandler, parse_vars, subcmd
 
@@ -94,7 +95,7 @@ def _db_new(parser,context,topargs):
 @subcmd('show',
         dbcommands,
         dbcommands_help,
-        help="add new record")
+        help="show full records")
 def _db_show(parser,context,topargs):
     
     parser.add_argument('path',
@@ -132,6 +133,9 @@ def _db_update(parser,context,topargs):
     parser.add_argument('--exact',
                         help='only show exact value matches',
                         action="store_true")
+    parser.add_argument('--field',
+                        help='only update the given field',
+                        action="store")
     parser.add_argument('--db',
                         help='path to the database (default is ./db.json)',
                         action="store",
@@ -147,6 +151,7 @@ def _db_update(parser,context,topargs):
     update_records(args.path,
                    args.value,
                    args.exact,
+                   args.field,
                    args.schema,
                    args.db)
 
@@ -228,6 +233,14 @@ def _schema_add(parser,context,topargs):
     from .tree import SCHTree
     
     schema = SCHTree.from_json(args.schema)
+    total_path = f"{args.parent}/{args.name}"
+    
+    try: 
+        node = schema.find_by_path(total_path)
+        node.parent = None
+    except ChildResolverError:
+        pass
+    
     schema.add_node(args.name, args.parent, **node_attr)
     
     print(schema)

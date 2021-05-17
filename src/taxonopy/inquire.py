@@ -6,6 +6,8 @@ Created on Tue May 11 14:55:45 2021
 """
 
 import re
+import sys
+import importlib
 
 import inquirer
 from anytree import PreOrderIter
@@ -44,11 +46,27 @@ class RecordBuilder:
         self._render = ConsoleRender(theme=MyTheme())
         self._iters = None
     
-    def build(self, existing=None):
+    def build(self, existing=None, node_path=None):
         
-        self._iters = [PreOrderIter(self._schema.root_node, maxlevel=2)]
-        record = SCHTree()
+        # Update just one node in an existing record
+        if existing is not None and node_path is not None:
+            
+            self._iters = []
+            record = SCHTree.from_dict(existing.to_dict())
+            
+            try:
+                record.delete_node(node_path)
+            except ChildResolverError:
+                pass
+            
+            node = self._schema.find_by_path(node_path)
+            self._build_node(record, node, existing)
         
+        else:
+            
+            record = SCHTree()
+            self._iters = [PreOrderIter(self._schema.root_node, maxlevel=2)]
+            
         while True:
             try:
                 self._next(record, existing)
@@ -61,7 +79,10 @@ class RecordBuilder:
     
     def _next(self, record, existing=None):
         
-        top_iter = self._iters[-1]
+        try:
+            top_iter = self._iters[-1]
+        except IndexError:
+            raise StopIteration
         
         while True:
             
@@ -73,6 +94,10 @@ class RecordBuilder:
                 if len(self._iters) == 0:
                     raise StopIteration
                 top_iter = self._iters[-1]
+        
+        self._build_node(record, node, existing)
+    
+    def _build_node(self, record, node, existing=None):
         
         node_attr = get_node_attr(node, blacklist=["name"])
         
@@ -94,46 +119,8 @@ class RecordBuilder:
             self._select_from_check(record, node, node_attr, existing)
     
     def _select_from_type(self, record, node, node_attr, existing=None):
-        
-        required = False
-        default = None
-        node_path = get_node_path(node)
-        
-        if "required" in node_attr: required = bool(node_attr["required"])
-        
-        message = f"{node.name} [{node.type}]"
-        if required: message += " (required)"
-        
-        # Set a default if the record already contains the node
-        if existing is not None and _record_has_node(existing, node_path):
-            existing_node = existing.find_by_path(node_path)
-            default = existing_node.value
-        
-        while True:
-            
-            value = inquirer.text(message=message,
-                                  render=self._render,
-                                  default=default)
-            value = _apply_backspace(value)
-            
-            if value:
-                
-                # Check if the type is OK
-                val_type = eval(node_attr["type"])
-                
-                try:
-                    val_type(value)
-                except:
-                    print( "Given value is not compatible with type "
-                          f"'{val_type}'" )
-                    value = ""
-            
-            if value or not required: break
-        
-        if not value: return
-        
-        node_attr["value"] = value
-        _copy_node_to_record(record, node, **node_attr)
+        if self._set_node_type(node, node_attr, existing):
+            _copy_node_to_record(record, node, **node_attr)
     
     def _select_from_list(self, record, node, node_attr, existing=None):
         
@@ -148,11 +135,18 @@ class RecordBuilder:
         
         # Ask if the node should be added
         if not required:
+            
+            # Check the default value:
+            if existing is not None and _record_has_node(existing, node_path):
+                default="yes"
+            else:
+                default="no"
+            
             message = f"Add {node.name}?"
             choice = inquirer.list_input(message,
                                          render=self._render,
                                          choices=['yes', 'no'],
-                                         default="no")
+                                         default=default)
             
             if choice == "no": return
         
@@ -176,6 +170,13 @@ class RecordBuilder:
         
         chosen_node = self._schema.find_by_path(choice_path)
         chosen_node_attr = get_node_attr(chosen_node, blacklist=["name"])
+        
+        if "type" in chosen_node_attr:
+            self._select_from_type(record,
+                                   chosen_node,
+                                   chosen_node_attr,
+                                   existing)
+        
         _copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_node.children) < 1: return
@@ -237,9 +238,16 @@ class RecordBuilder:
         
         for choice in chosen:
             
-            chosen_node = self._schema.find_by_name(choice, node_path)
+            choise_path = f"{node_path}/{choice}"
+            chosen_node = self._schema.find_by_path(choise_path)
             chosen_node_attr = get_node_attr(chosen_node,
                                              blacklist=["name"])
+            
+            if "type" in chosen_node_attr:
+                self._select_from_type(record,
+                                       chosen_node,
+                                       chosen_node_attr,
+                                       existing)
             
             if len(chosen_node.children) > 0:
                 chosen_nodes.append(chosen_node)
@@ -250,6 +258,54 @@ class RecordBuilder:
             
         new_iter = iter(chosen_nodes)
         self._iters.append(new_iter)
+    
+    def _set_node_type(self, node, node_attr, existing=None):
+        
+        required = False
+        default = None
+        node_path = get_node_path(node)
+        
+        if "required" in node_attr: required = bool(node_attr["required"])
+            
+        message = f"{node.name} [{node.type}]"
+        if required: message += " (required)"
+        
+        # Set a default if the record already contains the node
+        if existing is not None and _record_has_node(existing, node_path):
+            existing_node = existing.find_by_path(node_path)
+            default = existing_node.value
+        
+        while True:
+            
+            value = inquirer.text(message=message,
+                                  render=self._render,
+                                  default=default)
+            value = _apply_backspace(value)
+            
+            if value:
+                
+                # Check if the type is OK (import helpers if needed)
+                if "import" in node_attr:
+                    import_str = (f'{node_attr["import"]} = '
+                              'importlib.import_module(node_attr["import"])')
+                    exec(import_str)
+                
+                val_type = eval(node_attr["type"])
+                
+                try:
+                    val_type(value)
+                except:
+                    print( "Given value is not compatible with type "
+                          f"'{val_type}'" )
+                    value = ""
+            
+            if value or not required: break
+        
+        if not value: return False
+        
+        node_attr["value"] = value
+        
+        return True
 
 
 def _copy_node_to_record(record, node, **node_attr):
@@ -286,3 +342,4 @@ def _apply_backspace(s):
             # now remove any backspaces from beginning of string
             return re.sub('\b+', '', t)
         s = t
+

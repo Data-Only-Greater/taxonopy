@@ -106,6 +106,7 @@ def show_records(path, value=None, exact=False, db_path="db.json"):
 def update_records(path,
                    value=None,
                    exact=False,
+                   node_path=None,
                    schema_path="schema.json",
                    db_path="db.json"):
     
@@ -127,7 +128,7 @@ def update_records(path,
         
         while True:
             
-            updated = builder.build(record)
+            updated = builder.build(record, node_path)
             print(updated)
             
             message = "Store updated record?"

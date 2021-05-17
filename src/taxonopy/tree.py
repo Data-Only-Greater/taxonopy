@@ -237,7 +237,12 @@ class SCHTree(Tree):
     def add_node(self, name, parent=None, **kwargs):
         
         data = {}
-        extra_keys = ["type", "default", "value", "inquire", "required"]
+        extra_keys = ["type",
+                      "default",
+                      "value",
+                      "inquire",
+                      "required",
+                      "import"]
         
         for key in extra_keys:
             if key in kwargs: data[key] = kwargs[key]
