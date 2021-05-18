@@ -118,10 +118,22 @@ class RecordBuilder:
         # Now see if the node is a header for list selection
         if "inquire" in node_attr and node_attr["inquire"] == "list":
             self._select_from_list(record, node, node_attr, existing)
+            return
         
         # Now see if the node is a header for checkbox selection
         if "inquire" in node_attr and node_attr["inquire"] == "checkbox":
             self._select_from_check(record, node, node_attr, existing)
+            return
+        
+        if children is not None: node_attr["children"] = children
+        _copy_node_to_record(record, node, **node_attr)
+        
+        if len(node.children) < 1: return
+            
+        new_iter = PreOrderIter(node, maxlevel=2)
+        next(new_iter)
+        
+        self._iters.append(new_iter)
     
     def _select_from_type(self, record, node, node_attr, existing=None):
         if self._set_node_type(node, node_attr, existing):
