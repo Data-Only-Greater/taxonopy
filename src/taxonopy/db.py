@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 from collections import OrderedDict
 from collections.abc import Iterable
 
@@ -58,10 +59,14 @@ def new_record(schema_path="schema.json",
         print(record)
         
         message = f"Store record with {node.name} '{node.value}'?"
-        choice = inquirer.list_input(message,
-                                     render=ConsoleRender(theme=MyTheme()),
-                                     choices=['yes', 'retry', 'quit'],
-                                     default="yes")
+        
+        try:
+            choice = inquirer.list_input(message,
+                                         render=ConsoleRender(theme=MyTheme()),
+                                         choices=['yes', 'retry', 'quit'],
+                                         default="yes")
+        except KeyboardInterrupt:
+            sys.exit()
         
         if choice == "quit": return
         if choice == "retry": continue
@@ -72,10 +77,15 @@ def new_record(schema_path="schema.json",
             
             message = (f"A record with {node.name} '{node.value}' already "
                         "exists. Add another?")
-            choice = inquirer.list_input(message,
-                                         render=ConsoleRender(theme=MyTheme()),
-                                         choices=['yes', 'retry', 'quit'],
-                                         default="retry")
+            
+            try:
+                choice = inquirer.list_input(
+                                        message,
+                                        render=ConsoleRender(theme=MyTheme()),
+                                        choices=['yes', 'retry', 'quit'],
+                                        default="retry")
+            except KeyboardInterrupt:
+                sys.exit()
             
             if choice == "quit": return
             if choice == "retry": continue
@@ -173,10 +183,14 @@ def update_records(path,
         
         node = record.root_node
         message = f"Update record with {node.name} '{node.value}'?"
-        choice = inquirer.list_input(message,
-                                     render=ConsoleRender(theme=MyTheme()),
-                                     choices=['yes', 'no', 'quit'],
-                                     default="yes")
+        
+        try:
+            choice = inquirer.list_input(message,
+                                         render=ConsoleRender(theme=MyTheme()),
+                                         choices=['yes', 'no', 'quit'],
+                                         default="yes")
+        except KeyboardInterrupt:
+                sys.exit()
             
         if choice == "quit": return
         if choice == "no": continue
@@ -187,10 +201,15 @@ def update_records(path,
             print(updated)
             
             message = "Store updated record?"
-            choice = inquirer.list_input(message,
-                                         render=ConsoleRender(theme=MyTheme()),
-                                         choices=['yes', 'retry', 'quit'],
-                                         default="yes")
+            
+            try:
+                choice = inquirer.list_input(
+                                        message,
+                                        render=ConsoleRender(theme=MyTheme()),
+                                        choices=['yes', 'retry', 'quit'],
+                                        default="yes")
+            except KeyboardInterrupt:
+                sys.exit()
             
             if choice == "quit": return
             if choice == "retry": continue
