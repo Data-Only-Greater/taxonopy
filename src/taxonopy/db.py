@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import itertools
 from collections import OrderedDict
 from collections.abc import Iterable
 
@@ -123,9 +124,12 @@ def show_nodes(paths=None, db_path="db.json"):
         
         return msg_str
     
+    multi_field = False
+    
     if not _is_iterable(paths):
         paths = (paths,)
-        
+    
+    if len(paths) > 2: multi_field = True
     db = DataBase(db_path)
     records = db.all()
     
@@ -144,14 +148,20 @@ def show_nodes(paths=None, db_path="db.json"):
                     node = record.find_by_path(path)
                 except ChildResolverError:
                     msgs.append(False)
-                    break
+                    continue
             
             msgs.append(_get_msg(node))
         
-        if not all(msgs): continue
-        msg_rows.append(msgs)
+        if not multi_field:
+            if all(msgs): msg_rows.append(msgs)
+            continue
+        
+        filtered_msgs = tuple(x for x in msgs if x)
+        if len(filtered_msgs) < 2: continue
+        msg_rows.append(filtered_msgs)
     
-    widths = [len(max(msgs, key=len)) + 1 for msgs in zip(*msg_rows)]
+    widths = [len(max(msgs, key=len)) + 1
+                  for msgs in itertools.zip_longest(*msg_rows, fillvalue="")]
     
     for x in msg_rows:
         
@@ -159,6 +169,7 @@ def show_nodes(paths=None, db_path="db.json"):
         
         for i, msg in enumerate(x):
             final_str += f'{msg: <{widths[i]}}'
+            if i < len(widths) - 1: final_str += "| "
         
         print(final_str)
 
