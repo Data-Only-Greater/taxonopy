@@ -51,6 +51,29 @@ def _db(parser,context,topargs):
     handler.run(topargs)
 
 
+@subcmd('count',
+        dbcommands,
+        dbcommands_help,
+        help="count records")
+def _db_count(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of field to count',
+                        action='store')
+    parser.add_argument('--value',
+                        help='only matching given value',
+                        action="store")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_count
+    show_count(args.path, args.value, args.db)
+
+
 @subcmd('list',
         dbcommands,
         dbcommands_help,

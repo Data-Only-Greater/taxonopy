@@ -95,6 +95,15 @@ def new_record(schema_path="schema.json",
         return
 
 
+def show_count(path,
+               value=None,
+               db_path="db.json"):
+    db = DataBase(db_path)
+    count = db.count(path, value)
+    msg = f"{path}: {count}"
+    print(msg)
+
+
 def show_nodes(paths=None, db_path="db.json"):
     
     def _get_msg(node):
