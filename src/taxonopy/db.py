@@ -305,6 +305,7 @@ def _get_node_sorter(case_insenstive=True):
     
     return sorter
 
+
 def _is_iterable(obj):
     
     result = False

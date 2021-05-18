@@ -2,6 +2,7 @@
 import os
 import json
 from copy import deepcopy
+from collections import OrderedDict
 
 from anytree import LevelOrderGroupIter, Node, RenderTree
 from anytree.exporter import UniqueDotExporter
@@ -96,7 +97,7 @@ class Tree:
         
         if self.root_node is None: return {}
         
-        output_dict = {}
+        output_dict = OrderedDict()
         
         for i, children in enumerate(LevelOrderGroupIter(self.root_node)):
             
@@ -105,7 +106,7 @@ class Tree:
             for node in children:
                 
                 # Must have name and parent
-                node_dict = {"name": node.name}
+                node_dict = OrderedDict([("name", node.name)])
                 
                 if node.parent is not None:
                     
@@ -115,7 +116,7 @@ class Tree:
                     
                     node_dict["parent"] = parent_path
                 
-                for attr in self.extra_attrs:
+                for attr in sorted(self.extra_attrs):
                     if hasattr(node, attr):
                         node_dict[attr] = getattr(node, attr)
                 
