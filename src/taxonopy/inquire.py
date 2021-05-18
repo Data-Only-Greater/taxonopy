@@ -53,14 +53,18 @@ class RecordBuilder:
             
             self._iters = []
             record = SCHTree.from_dict(existing.to_dict())
+            children = None
             
             try:
+                old_node = record.find_by_path(node_path)
+                children = old_node.children
                 record.delete_node(node_path)
             except ChildResolverError:
                 pass
             
             node = self._schema.find_by_path(node_path)
-            self._build_node(record, node, existing)
+            
+            self._build_node(record, node, existing, children)
         
         else:
             
@@ -97,13 +101,14 @@ class RecordBuilder:
         
         self._build_node(record, node, existing)
     
-    def _build_node(self, record, node, existing=None):
+    def _build_node(self, record, node, existing=None, children=None):
         
         node_attr = get_node_attr(node, blacklist=["name"])
         
         # See if node requires data first
         if "type" in node_attr:
             
+            if children is not None: node_attr["children"] = children
             self._select_from_type(record, node, node_attr, existing)
             
             # If a typed node has no value and no children then we're done

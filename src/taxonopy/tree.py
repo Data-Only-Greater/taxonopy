@@ -190,16 +190,16 @@ class Tree:
         
         return r.get(self.root_node, path_relative)
     
-    def add_node(self, name, parent=None, **kwargs):
+    def add_node(self, name, parent=None, children=None, **kwargs):
         
         self.extra_attrs |= set(kwargs.keys())
         
         if parent is None:
-            self.root_node = Node(name, **kwargs)
+            self.root_node = Node(name, children=children, **kwargs)
             return
         
         parent_node = self.find_by_path(parent)
-        Node(name, parent=parent_node, **kwargs)
+        Node(name, parent=parent_node, children=children, **kwargs)
     
     def delete_node(self, path):
         node = self.find_by_path(path)
@@ -245,7 +245,8 @@ class SCHTree(Tree):
                       "value",
                       "inquire",
                       "required",
-                      "import"]
+                      "import",
+                      "children"]
         
         for key in extra_keys:
             if key in kwargs: data[key] = kwargs[key]
