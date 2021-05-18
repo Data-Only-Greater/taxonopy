@@ -226,13 +226,17 @@ def update_records(path,
                 choice = inquirer.list_input(
                                         message,
                                         render=ConsoleRender(theme=MyTheme()),
-                                        choices=['yes', 'retry', 'quit'],
+                                        choices=['yes',
+                                                 'no',
+                                                 'retry',
+                                                 'quit'],
                                         default="yes")
             except KeyboardInterrupt:
                 sys.exit()
             
             if choice == "quit": return
             if choice == "retry": continue
+            if choice == "no": break
             
             db.replace(doc_id, updated)
             break
