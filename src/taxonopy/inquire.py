@@ -342,4 +342,3 @@ def _apply_backspace(s):
             # now remove any backspaces from beginning of string
             return re.sub('\b+', '', t)
         s = t
-

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
+from collections.abc import Iterable
+
 import inquirer
 from anytree.resolver import ChildResolverError
 from inquirer.render.console import ConsoleRender
@@ -21,15 +24,18 @@ class DataBase:
         self._db.insert(record.to_dict())
     
     def all(self):
-        return {doc.doc_id: SCHTree.from_dict(dict(doc)) for doc in self._db}
+        sorter = _get_doc_sorter()
+        return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
+                                   for doc in sorted(self._db, key=sorter))
     
     def count(self, node_path, value=None):
         return self._db.count(_make_query(node_path, value))
     
     def get(self, node_path, value=None, exact=False):
         query = _make_query(node_path, value, exact)
-        return {doc.doc_id: SCHTree.from_dict(dict(doc))
-                                        for doc in self._db.search(query)}
+        sorter = _get_doc_sorter()
+        return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
+                       for doc in sorted(self._db.search(query), key=sorter))
     
     def replace(self, doc_id, record):
         self._db.remove(doc_ids=[doc_id])
@@ -77,25 +83,74 @@ def new_record(schema_path="schema.json",
         db.add(record)
         return
 
-def show_nodes(path=None, db_path="db.json"):
+
+def show_nodes(paths=None, db_path="db.json"):
     
+    def _get_msg(node):
+        
+        msg_str = f"{node.name}"
+        
+        if hasattr(node, "value"):
+            msg_str += f": {node.value}"
+            return msg_str
+            
+        if hasattr(node, "inquire"):
+            
+            child_names = []
+            sorter = _get_node_sorter()
+            
+            for child in sorted(node.children, key=sorter):
+                child_names.append(child.name)
+            
+            child_str = ", ".join(child_names)
+            
+            if len(child_names) == 1:
+                msg_str += f": {child_str}"
+            elif len(child_names) > 1:
+                msg_str += ": {" + child_str + "}"
+            
+            return msg_str
+        
+        return msg_str
+    
+    if not _is_iterable(paths):
+        paths = (paths,)
+        
     db = DataBase(db_path)
     records = db.all()
     
+    msg_rows = []
+    
     for record in records.values():
         
-        if path is None:
-            node = record.root_node
-        else:
-            
-            try: 
-                node = record.find_by_path(path)
-            except ChildResolverError:
-                continue
+        msgs = []
         
-        msg_str = f"{node.name}"
-        if hasattr(node, "value"): msg_str += f": {node.value}"
-        print(msg_str)
+        for path in paths:
+            
+            if path is None:
+                node = record.root_node
+            else:
+                try: 
+                    node = record.find_by_path(path)
+                except ChildResolverError:
+                    msgs.append(False)
+                    break
+            
+            msgs.append(_get_msg(node))
+        
+        if not all(msgs): continue
+        msg_rows.append(msgs)
+    
+    widths = [len(max(msgs, key=len)) + 1 for msgs in zip(*msg_rows)]
+    
+    for x in msg_rows:
+        
+        final_str = ""
+        
+        for i, msg in enumerate(x):
+            final_str += f'{msg: <{widths[i]}}'
+        
+        print(final_str)
 
 
 def show_records(path, value=None, exact=False, db_path="db.json"):
@@ -162,5 +217,57 @@ def _make_query(path, value=None, exact=False):
             
         result &= query[f'L{len(path_resolution) - 1}'].any(
                                             query.value.test(test, value))
+    
+    return result
+
+
+def _get_doc_sorter(path=None, case_insenstive=True):
+    
+    node_sorter = _get_node_sorter(case_insenstive)
+    
+    def sorter(doc):
+        
+        tree = SCHTree.from_dict(dict(doc))
+        
+        if path is None:
+            node = tree.root_node
+        else:
+            node = tree.find_by_path(path)
+        
+        return node_sorter(node)
+    
+    return sorter
+
+
+def _get_node_sorter(case_insenstive=True):
+    
+    def sorter(node):
+        
+        has_value = False
+        if hasattr(node, "value"): has_value = True
+        
+        if case_insenstive:
+            name = node.name.lower()
+            if has_value: value = node.value.lower()
+        else:
+            name = node.name
+            if has_value: value = node.value
+        
+        if has_value:
+            result = (name, value)
+        else:
+            result = name
+        
+        return result
+    
+    return sorter
+
+def _is_iterable(obj):
+    
+    result = False
+    excluded_types = (str, dict)
+    
+    if isinstance(obj, Iterable) and not isinstance(obj, excluded_types):
+        result = True
     
     return result

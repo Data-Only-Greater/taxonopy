@@ -59,7 +59,7 @@ def _db_list(parser,context,topargs):
     
     parser.add_argument('--path',
                         help='path of field to display (default is root)',
-                        action="store")
+                        action='append')
     parser.add_argument('--db',
                         help='path to the database (default is ./db.json)',
                         action="store",

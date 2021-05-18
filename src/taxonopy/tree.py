@@ -1,6 +1,7 @@
 
 import os
 import json
+from copy import deepcopy
 
 from anytree import LevelOrderGroupIter, Node, RenderTree
 from anytree.exporter import UniqueDotExporter
@@ -33,6 +34,8 @@ class Tree:
     
     @classmethod
     def from_dict(cls, data, level_prefix="L"):
+        
+        data = deepcopy(data)
         
         n_levels = len(list(data.keys()))
         new_tree = cls(level_prefix)
