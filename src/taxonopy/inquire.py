@@ -63,13 +63,12 @@ class RecordBuilder:
                 pass
             
             node = self._schema.find_by_path(node_path)
-            
             self._build_node(record, node, existing, children)
         
         else:
             
-            record = SCHTree()
             self._iters = [iter([self._schema.root_node])]
+            record = SCHTree()
             
         while True:
             try:
