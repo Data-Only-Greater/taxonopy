@@ -69,7 +69,7 @@ class RecordBuilder:
         else:
             
             record = SCHTree()
-            self._iters = [PreOrderIter(self._schema.root_node, maxlevel=2)]
+            self._iters = [iter([self._schema.root_node])]
             
         while True:
             try:
