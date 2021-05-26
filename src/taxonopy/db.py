@@ -9,6 +9,10 @@ import inquirer
 from anytree.resolver import ChildResolverError
 from inquirer.render.console import ConsoleRender
 from tinydb import table, TinyDB, Query
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
+from openpyxl.utils import get_column_letter
 
 from .tree import SCHTree
 from .inquire import MyTheme, RecordBuilder
@@ -315,3 +319,115 @@ def _is_iterable(obj):
         result = True
     
     return result
+
+def get_tree_titles(tree, sep=":"):
+    root_node = tree.root_node
+    titles = [root_node.name]
+    child_titles = get_child_titles(root_node)
+    titles.extend(child_titles)
+    return titles
+
+
+def get_child_titles(node, parent=None, sep=":"):
+    
+    titles = []
+    
+    is_option = False
+    if hasattr(node, "inquire") and getattr(node, "inquire") in ["list", "checkbox"]:
+        is_option = True
+    
+    for child in node.children:
+        
+        if (is_option and
+            not (child.children or hasattr(child, "type"))): continue
+        
+        if parent is None:
+            name = child.name
+        else:
+            name = f"{parent}{sep}{child.name}"
+        
+        titles.append(name)
+        
+        if child.children:
+            child_titles = get_child_titles(child, name, sep)
+            titles.extend(child_titles)
+    
+    return titles
+
+
+def get_tree_values(node, parent=None, title_sep=":", value_sep=","):
+        
+    def has_value(node):
+        return hasattr(node, "value")
+    
+    def get_value(node):
+        return getattr(node, "value")
+    
+    values = []
+    
+    if has_value(node):
+        value = get_value(node)
+    else:
+        value = ""
+    
+    is_option = False
+    if hasattr(node, "inquire") and getattr(node, "inquire") in ["list", "checkbox"]:
+        is_option = True
+    
+    if is_option:
+        
+        for child in node.children:
+            
+            if value:
+                value += f"{value_sep}{child.name}"
+            else:
+                value += f"{child.name}"
+    
+    values.append(value)
+    
+    for child in node.children:
+    
+        if (is_option and
+            not (child.children or hasattr(child, "type"))): continue
+        
+        if parent is None:
+            name = child.name
+        else:
+            name = f"{parent}{title_sep}{child.name}"
+                
+        child_values = get_tree_values(child, name, title_sep, value_sep)
+        values.extend(child_values)
+    
+    return values
+
+
+def _write_excel(titles, db):
+    
+    wb = Workbook()
+    ws = wb.active
+    
+    ws.append(titles)
+    
+    for record in db.get("Title").values():
+        
+        row_values = [None] * len(titles)
+        record_titles = get_tree_titles(record)
+        record_values = get_tree_values(record.root_node)
+        
+        for col_title, col_value in zip(record_titles, record_values):
+            col_idx = titles.index(col_title)
+            row_values[col_idx] = col_value
+    
+        ws.append(row_values)
+    
+    for cell in ws["1:1"]:
+        cell.font = Font(bold=True)
+    
+    dim_holder = DimensionHolder(worksheet=ws)
+    
+    for col in range(ws.min_column, ws.max_column + 1):
+        dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+    
+    ws.column_dimensions = dim_holder
+    
+    wb.save("test.xlsx")
