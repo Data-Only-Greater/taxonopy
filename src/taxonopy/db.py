@@ -12,13 +12,13 @@ import inquirer
 from anytree.resolver import ChildResolverError
 from inquirer.render.console import ConsoleRender
 from tinydb import table, TinyDB, Query
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from openpyxl.drawing.image import Image
 
 from .tree import SCHTree
-from .record import CLITheme, CLIRecordBuilder
+from .record import CLITheme, CLIRecordBuilder, FlatRecordBuilder
 
 
 class DataBase:
@@ -327,6 +327,26 @@ def dump_xl(out,
         wb.save(out)
 
 
+def load_xl(db_path, xl_path, schema_path="schema.json", append=False):
+    
+    if not append and os.path.exists(db_path):
+        os.remove(db_path)
+    
+    schema = SCHTree.from_json(schema_path)
+    builder = FlatRecordBuilder(schema)
+    
+    db = DataBase(db_path)
+    wb = load_workbook(xl_path)
+    
+    ws = wb['DataBase']
+    titles = [cell.value for cell in ws[1]]
+    
+    for values in ws.iter_rows(min_row=2, values_only=True):
+        flat = {t: v for t, v in zip(titles, values)}
+        record = builder.build(flat)
+        db.add(record)
+
+
 def _make_query(path, value=None, exact=False):
     
     query = Query()
@@ -447,11 +467,10 @@ def _get_tree_values(node, parent=None, title_sep=":", value_sep=", "):
         return getattr(node, "value")
     
     values = []
+    prep_values = []
     
     if has_value(node):
-        value = get_value(node)
-    else:
-        value = ""
+        prep_values.append(get_value(node))
     
     is_option = False
     if (hasattr(node, "inquire") and
@@ -459,14 +478,10 @@ def _get_tree_values(node, parent=None, title_sep=":", value_sep=", "):
         is_option = True
     
     if is_option:
-        
         for child in node.children:
-            
-            if value:
-                value += f"{value_sep}{child.name}"
-            else:
-                value += f"{child.name}"
+            prep_values.append(child.name)
     
+    value = value_sep.join(sorted(prep_values))
     values.append(value)
     
     for child in node.children:

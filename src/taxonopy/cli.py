@@ -202,6 +202,33 @@ def _db_dump(parser,context,topargs):
     from .db import dump_xl
     dump_xl(args.path, args.schema, args.db)
 
+
+@subcmd('load',
+        dbcommands,
+        dbcommands_help,
+        help="load database from excel")
+def _db_load(parser,context,topargs):
+    
+    parser.add_argument('db_path',
+                        help='path to the database file to fill',
+                        action="store")
+    parser.add_argument('xl_path',
+                        help='path of xlsx file to read',
+                        action="store")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    parser.add_argument('--append',
+                        help=('append to an existing database (otherwise '
+                              'overwritten)'),
+                        action="store_true")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import load_xl
+    load_xl(args.db_path, args.xl_path, args.schema, args.append)
+
 ### SCHEMA
 
 @subcmd('schema',

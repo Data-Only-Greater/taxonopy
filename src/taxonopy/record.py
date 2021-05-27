@@ -29,30 +29,12 @@ class RecordBuilderBase(ABC):
         self._schema = schema
         self._iters = None
     
-    def build(self, existing=None, node_path=None):
+    @abstractmethod
+    def build(self, existing=None):
+        return
+    
+    def _build(self, record, existing=None):
         
-        # Update just one node in an existing record
-        if existing is not None and node_path is not None:
-            
-            self._iters = []
-            record = SCHTree.from_dict(existing.to_dict())
-            children = None
-            
-            try:
-                old_node = record.find_by_path(node_path)
-                children = old_node.children
-                record.delete_node(node_path)
-            except ChildResolverError:
-                pass
-            
-            node = self._schema.find_by_path(node_path)
-            self._build_node(record, node, existing, children)
-        
-        else:
-            
-            self._iters = [iter([self._schema.root_node])]
-            record = SCHTree()
-            
         while True:
             try:
                 self._next(record, existing)
@@ -84,7 +66,7 @@ class RecordBuilderBase(ABC):
         self._build_node(record, node, existing)
     
     @abstractmethod
-    def _build_node(record, node, existing=None, children=None):
+    def _build_node(record, node, existing=None):
         return
 
 
@@ -109,7 +91,35 @@ class CLIRecordBuilder(RecordBuilderBase):
     
     def __init__(self, schema):
         super().__init__(schema)
-        self._render = ConsoleRender(theme=CLITheme())    
+        self._render = ConsoleRender(theme=CLITheme())
+    
+    def build(self, existing=None, node_path=None):
+        
+        # Update just one node in an existing record
+        if existing is not None and node_path is not None:
+            
+            self._iters = []
+            record = SCHTree.from_dict(existing.to_dict())
+            children = None
+            
+            try:
+                old_node = record.find_by_path(node_path)
+                children = old_node.children
+                record.delete_node(node_path)
+            except ChildResolverError:
+                pass
+            
+            node = self._schema.find_by_path(node_path)
+            self._build_node(record, node, existing, children)
+        
+        else:
+            
+            self._iters = [iter([self._schema.root_node])]
+            record = SCHTree()
+        
+        record = self._build(record, existing)
+        
+        return record
     
     def _build_node(self, record, node, existing=None, children=None):
         
@@ -139,7 +149,7 @@ class CLIRecordBuilder(RecordBuilderBase):
         _copy_node_to_record(record, node, **node_attr)
         
         if len(node.children) < 1: return
-            
+        
         new_iter = PreOrderIter(node, maxlevel=2)
         next(new_iter)
         
@@ -148,6 +158,58 @@ class CLIRecordBuilder(RecordBuilderBase):
     def _select_from_type(self, record, node, node_attr, existing=None):
         if self._set_node_type(node, node_attr, existing):
             _copy_node_to_record(record, node, **node_attr)
+    
+    def _set_node_type(self, node, node_attr, existing=None):
+        
+        required = False
+        default = None
+        node_path = get_node_path(node)
+        
+        if "required" in node_attr: required = bool(node_attr["required"])
+        
+        message = f"{node.name} [{node.type}]"
+        if required: message += " (required)"
+        
+        # Set a default if the record already contains the node
+        if existing is not None and _record_has_node(existing, node_path):
+            existing_node = existing.find_by_path(node_path)
+            default = existing_node.value
+        
+        while True:
+            
+            try:
+                value = inquirer.text(message=message,
+                                      render=self._render,
+                                      default=default)
+            except KeyboardInterrupt:
+                sys.exit()
+            
+            value = _apply_backspace(value)
+            
+            if value:
+                
+                # Check if the type is OK (import helpers if needed)
+                if "import" in node_attr:
+                    import_str = (f'{node_attr["import"]} = '
+                              'importlib.import_module(node_attr["import"])')
+                    exec(import_str)
+                
+                val_type = eval(node_attr["type"])
+                
+                try:
+                    val_type(value)
+                except:
+                    print( "Given value is not compatible with type "
+                          f"'{val_type}'" )
+                    value = ""
+            
+            if value or not required: break
+        
+        if not value: return False
+        
+        node_attr["value"] = value
+        
+        return True
     
     def _select_from_list(self, record, node, node_attr, existing=None):
         
@@ -292,61 +354,206 @@ class CLIRecordBuilder(RecordBuilderBase):
             _copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_nodes) < 1: return
+        
+        new_iter = iter(chosen_nodes)
+        self._iters.append(new_iter)
+
+
+class FlatRecordBuilder(RecordBuilderBase):
+    
+    def __init__(self, schema, title_sep=":", value_sep=", "):
+        super().__init__(schema)
+        self._title_sep = title_sep
+        self._value_sep = value_sep
+    
+    def build(self, existing):
+        
+        self._iters = [iter([self._schema.root_node])]
+        record = SCHTree()
+        record = self._build(record, existing)
+        
+        return record
+    
+    def _build_node(self, record, node, existing):
+        
+        node_attr = get_node_attr(node, blacklist=["name"])
+        
+        # See if node requires data first
+        if "type" in node_attr:
             
+            self._select_from_type(record, node, node_attr, existing)
+            
+            # If a typed node has no value and no children then we're done
+            if "value" not in node_attr or not node.children:
+                return
+        
+        # Now see if the node is a header for list selection
+        if "inquire" in node_attr and node_attr["inquire"] == "list":
+            self._select_from_list(record, node, node_attr, existing)
+            return
+        
+        # Now see if the node is a header for checkbox selection
+        if "inquire" in node_attr and node_attr["inquire"] == "checkbox":
+            self._select_from_check(record, node, node_attr, existing)
+            return
+        
+        _copy_node_to_record(record, node, **node_attr)
+        
+        if len(node.children) < 1: return
+        
+        new_iter = PreOrderIter(node, maxlevel=2)
+        next(new_iter)
+        
+        self._iters.append(new_iter)
+    
+    def _select_from_type(self, record, node, node_attr, existing):
+        if self._set_node_type(node, node_attr, existing):
+            _copy_node_to_record(record, node, **node_attr)
+    
+    def _set_node_type(self, node, node_attr, existing):
+        
+        required = False
+        node_title = self._get_node_title(node)
+        existing_value = existing[node_title]
+        
+        if "required" in node_attr: required = bool(node_attr["required"])
+        
+        if required and existing_value is None:
+            err_msg = (f"Node {node.name} is required, but existing record"
+                        "has no value.")
+            raise ValueError(err_msg)
+        
+        if existing_value is None: return False
+        
+        if "import" in node_attr:
+            import_str = (f'{node_attr["import"]} = '
+                      'importlib.import_module(node_attr["import"])')
+            exec(import_str)
+        
+        val_type = eval(node_attr["type"])
+        val_type(existing_value)
+        node_attr["value"] = existing_value
+        
+        return True
+    
+    def _select_from_list(self, record, node, node_attr, existing):
+        
+        required = False
+        node_path = get_node_path(node)
+        node_title = self._get_node_title(node)
+        existing_value = existing[node_title]
+        
+        # If not yet added, check if node is required
+        if (_record_has_node(record, node_path) or
+            "required" in node_attr and node_attr["required"] == "True"):
+            required = True
+        
+        # Gather names of children
+        choices = [x.name for x in node.children]
+        
+        if required and existing_value is None:
+            err_msg = (f"Node {node.name} is required, but existing record"
+                        "has no value.")
+            raise ValueError(err_msg)
+        elif required and existing_value not in choices:
+            err_msg = f"Entry for required node {node.name} is not valid"
+            raise ValueError(err_msg)
+        elif (existing_value is None or existing_value not in choices):
+            return
+        
+        # Add the node to the record if required
+        _copy_node_to_record(record, node, **node_attr)
+        
+        choice_path = f"{node_path}/{existing_value}"
+        chosen_node = self._schema.find_by_path(choice_path)
+        chosen_node_attr = get_node_attr(chosen_node, blacklist=["name"])
+        
+        if "type" in chosen_node_attr:
+            self._select_from_type(record,
+                                   chosen_node,
+                                   chosen_node_attr,
+                                   existing)
+        
+        _copy_node_to_record(record, chosen_node, **chosen_node_attr)
+        
+        if len(chosen_node.children) < 1: return
+            
+        if "inquire" in chosen_node_attr:
+            new_iter = PreOrderIter(chosen_node, maxlevel=1)
+        else:
+            new_iter = PreOrderIter(chosen_node, maxlevel=2)
+            next(new_iter)
+        
+        self._iters.append(new_iter)
+    
+    def _select_from_check(self, record, node, node_attr, existing):
+        
+        required = False
+        node_path = get_node_path(node)
+        node_title = self._get_node_title(node)
+        existing_value = existing[node_title]
+        
+        # Check if required
+        if "required" in node_attr and node_attr["required"] == "True":
+            required = True
+        
+        if required and existing_value is None:
+            err_msg = (f"Node {node.name} is required, but existing record"
+                        "has no value.")
+            raise ValueError(err_msg)
+        
+        if existing_value is None: return
+        
+        # Check existing values against choices
+        choices = [x.name for x in node.children]
+        existing_values = set(existing_value.split(self._value_sep))
+        valid_values = list(set(choices) & existing_values)
+        
+        if required and not valid_values:
+            err_msg = f"No valid entries found for required node {node.name}"
+            raise ValueError(err_msg)
+        
+        if not valid_values: return
+        
+        # Sort the values based on the order of choices
+        sorter = {k:v for v,k in enumerate(choices)}
+        valid_values.sort(key=sorter.get)
+        
+        # Add the parent node if it's not already in the tree
+        _copy_node_to_record(record, node, **node_attr)
+        
+        chosen_nodes = []
+        
+        for choice in valid_values:
+            
+            choise_path = f"{node_path}/{choice}"
+            chosen_node = self._schema.find_by_path(choise_path)
+            chosen_node_attr = get_node_attr(chosen_node,
+                                             blacklist=["name"])
+            
+            if "type" in chosen_node_attr:
+                self._select_from_type(record,
+                                       chosen_node,
+                                       chosen_node_attr,
+                                       existing)
+            
+            if len(chosen_node.children) > 0:
+                chosen_nodes.append(chosen_node)
+            
+            _copy_node_to_record(record, chosen_node, **chosen_node_attr)
+        
+        if len(chosen_nodes) < 1: return
+        
         new_iter = iter(chosen_nodes)
         self._iters.append(new_iter)
     
-    def _set_node_type(self, node, node_attr, existing=None):
+    def _get_node_title(self, node):
         
-        required = False
-        default = None
-        node_path = get_node_path(node)
+        if node.path == self._schema.root_node.path:
+            return node.name
         
-        if "required" in node_attr: required = bool(node_attr["required"])
-            
-        message = f"{node.name} [{node.type}]"
-        if required: message += " (required)"
-        
-        # Set a default if the record already contains the node
-        if existing is not None and _record_has_node(existing, node_path):
-            existing_node = existing.find_by_path(node_path)
-            default = existing_node.value
-        
-        while True:
-            
-            try:
-                value = inquirer.text(message=message,
-                                      render=self._render,
-                                      default=default)
-            except KeyboardInterrupt:
-                sys.exit()
-                
-            value = _apply_backspace(value)
-            
-            if value:
-                
-                # Check if the type is OK (import helpers if needed)
-                if "import" in node_attr:
-                    import_str = (f'{node_attr["import"]} = '
-                              'importlib.import_module(node_attr["import"])')
-                    exec(import_str)
-                
-                val_type = eval(node_attr["type"])
-                
-                try:
-                    val_type(value)
-                except:
-                    print( "Given value is not compatible with type "
-                          f"'{val_type}'" )
-                    value = ""
-            
-            if value or not required: break
-        
-        if not value: return False
-        
-        node_attr["value"] = value
-        
-        return True
+        return self._title_sep.join([str(x.name) for x in node.path
+                                   if x.path != self._schema.root_node.path])
 
 
 def _copy_node_to_record(record, node, **node_attr):
