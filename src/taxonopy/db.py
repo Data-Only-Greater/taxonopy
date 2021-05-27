@@ -18,7 +18,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.drawing.image import Image
 
 from .tree import SCHTree
-from .inquire import MyTheme, RecordBuilder
+from .record import CLITheme, CLIRecordBuilder
 
 
 class DataBase:
@@ -57,7 +57,7 @@ def new_record(schema_path="schema.json",
     schema = SCHTree.from_json(schema_path)
     db = DataBase(db_path)
     
-    builder = RecordBuilder(schema)
+    builder = CLIRecordBuilder(schema)
     record = None
     
     while True:
@@ -70,7 +70,8 @@ def new_record(schema_path="schema.json",
         
         try:
             choice = inquirer.list_input(message,
-                                         render=ConsoleRender(theme=MyTheme()),
+                                         render=ConsoleRender(
+                                                             theme=CLITheme()),
                                          choices=['yes', 'retry', 'quit'],
                                          default="yes")
         except KeyboardInterrupt:
@@ -89,7 +90,8 @@ def new_record(schema_path="schema.json",
             try:
                 choice = inquirer.list_input(
                                         message,
-                                        render=ConsoleRender(theme=MyTheme()),
+                                        render=ConsoleRender(
+                                                             theme=CLITheme()),
                                         choices=['yes', 'retry', 'quit'],
                                         default="retry")
             except KeyboardInterrupt:
@@ -203,7 +205,7 @@ def update_records(path,
                    db_path="db.json"):
     
     schema = SCHTree.from_json(schema_path)
-    builder = RecordBuilder(schema)
+    builder = CLIRecordBuilder(schema)
     db = DataBase(db_path)
     
     for doc_id, record in db.get(path, value, exact).items():
@@ -213,7 +215,8 @@ def update_records(path,
         
         try:
             choice = inquirer.list_input(message,
-                                         render=ConsoleRender(theme=MyTheme()),
+                                         render=ConsoleRender(
+                                                             theme=CLITheme()),
                                          choices=['yes', 'no', 'quit'],
                                          default="yes")
         except KeyboardInterrupt:
@@ -232,7 +235,7 @@ def update_records(path,
             try:
                 choice = inquirer.list_input(
                                         message,
-                                        render=ConsoleRender(theme=MyTheme()),
+                                        render=ConsoleRender(theme=CLITheme()),
                                         choices=['yes',
                                                  'no',
                                                  'retry',

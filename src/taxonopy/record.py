@@ -8,6 +8,7 @@ Created on Tue May 11 14:55:45 2021
 import re
 import sys
 import importlib
+from abc import ABC, abstractmethod
 
 import inquirer
 from anytree import PreOrderIter
@@ -21,29 +22,11 @@ from .tree import SCHTree, get_node_attr, get_node_path, get_parent_path
 term = Terminal()
 
 
-class MyTheme(Theme):
-    def __init__(self):
-        super(MyTheme, self).__init__()
-        self.Question.mark_color = term.yellow
-        self.Question.brackets_color = term.bright_green
-        self.Question.default_color = term.yellow
-        self.Checkbox.selection_color = term.bright_green
-        self.Checkbox.selection_icon = ">"
-        self.Checkbox.selected_icon = "X"
-        self.Checkbox.selected_color = term.yellow + term.bold
-        self.Checkbox.unselected_color = term.normal
-        self.Checkbox.unselected_icon = "o"
-        self.List.selection_color = term.bright_green
-        self.List.selection_cursor = ">"
-        self.List.unselected_color = term.normal
+class RecordBuilderBase(ABC):
 
-
-class RecordBuilder:
-    
     def __init__(self, schema):
         
         self._schema = schema
-        self._render = ConsoleRender(theme=MyTheme())
         self._iters = None
     
     def build(self, existing=None, node_path=None):
@@ -99,6 +82,34 @@ class RecordBuilder:
                 top_iter = self._iters[-1]
         
         self._build_node(record, node, existing)
+    
+    @abstractmethod
+    def _build_node(record, node, existing=None, children=None):
+        return
+
+
+class CLITheme(Theme):
+    def __init__(self):
+        super(CLITheme, self).__init__()
+        self.Question.mark_color = term.yellow
+        self.Question.brackets_color = term.bright_green
+        self.Question.default_color = term.yellow
+        self.Checkbox.selection_color = term.bright_green
+        self.Checkbox.selection_icon = ">"
+        self.Checkbox.selected_icon = "X"
+        self.Checkbox.selected_color = term.yellow + term.bold
+        self.Checkbox.unselected_color = term.normal
+        self.Checkbox.unselected_icon = "o"
+        self.List.selection_color = term.bright_green
+        self.List.selection_cursor = ">"
+        self.List.unselected_color = term.normal
+
+
+class CLIRecordBuilder(RecordBuilderBase):
+    
+    def __init__(self, schema):
+        super().__init__(schema)
+        self._render = ConsoleRender(theme=CLITheme())    
     
     def _build_node(self, record, node, existing=None, children=None):
         
