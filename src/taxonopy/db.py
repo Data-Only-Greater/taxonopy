@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
+import tempfile
 import itertools
 from collections import OrderedDict
 from collections.abc import Iterable
 
+import graphviz
 import inquirer
 from anytree.resolver import ChildResolverError
 from inquirer.render.console import ConsoleRender
 from tinydb import table, TinyDB, Query
 from openpyxl import Workbook
 from openpyxl.styles import Font
-from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image
 
 from .tree import SCHTree
 from .inquire import MyTheme, RecordBuilder
@@ -246,6 +249,81 @@ def update_records(path,
             break
 
 
+def dump_xl(out,
+            schema_path="schema.json",
+            db_path="db.json",
+            img_format='png',
+            title_sep=":",
+            value_sep=","):
+    
+    # Remove xls or xlsx extension if added
+    if out[-5:] == ".xlsx":
+        out = out[:-5]
+    elif out[-4:] == ".xls":
+        out = out[:-4]
+    
+    # Add xlsx extension
+    out += ".xlsx"
+    
+    schema = SCHTree.from_json(schema_path)
+    db = DataBase(db_path)
+    wb = Workbook()
+    
+    ws = wb.active
+    ws.title = 'DataBase'
+    
+    titles = _get_tree_titles(schema, sep=title_sep)
+    ws.append(titles)
+    
+    for record in db.get("Title").values():
+        
+        row_values = [None] * len(titles)
+        record_titles = _get_tree_titles(record, sep=title_sep)
+        record_values = _get_tree_values(record.root_node,
+                                         title_sep=title_sep,
+                                         value_sep=value_sep)
+        
+        for col_title, col_value in zip(record_titles, record_values):
+            col_idx = titles.index(col_title)
+            row_values[col_idx] = col_value
+        
+        ws.append(row_values)
+    
+    for cell in ws["1:1"]:
+        cell.font = Font(bold=True)
+    
+    for col in ws.columns:
+        
+        max_length = 0
+        column = get_column_letter(col[0].column)
+        
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        
+        adjusted_width = max_length * 1.1
+        ws.column_dimensions[column].width = adjusted_width
+    
+    ws1 = wb.create_sheet("Schema")
+    
+    dot = schema.to_dot()
+    gv = graphviz.Source(dot)
+    gv.format = img_format
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        
+        img_name = os.path.join(tmpdir, "temp")
+        img_path = gv.render(img_name)
+        img = Image(img_path)
+        img.anchor = 'A1'
+        
+        ws1.add_image(img)
+        wb.save(out)
+
+
 def _make_query(path, value=None, exact=False):
     
     query = Query()
@@ -320,20 +398,22 @@ def _is_iterable(obj):
     
     return result
 
-def get_tree_titles(tree, sep=":"):
+
+def _get_tree_titles(tree, sep=":"):
     root_node = tree.root_node
     titles = [root_node.name]
-    child_titles = get_child_titles(root_node)
+    child_titles = _get_child_titles(root_node, sep=sep)
     titles.extend(child_titles)
     return titles
 
 
-def get_child_titles(node, parent=None, sep=":"):
+def _get_child_titles(node, parent=None, sep=":"):
     
     titles = []
     
     is_option = False
-    if hasattr(node, "inquire") and getattr(node, "inquire") in ["list", "checkbox"]:
+    if (hasattr(node, "inquire") and
+        getattr(node, "inquire") in ["list", "checkbox"]):
         is_option = True
     
     for child in node.children:
@@ -349,13 +429,13 @@ def get_child_titles(node, parent=None, sep=":"):
         titles.append(name)
         
         if child.children:
-            child_titles = get_child_titles(child, name, sep)
+            child_titles = _get_child_titles(child, name, sep)
             titles.extend(child_titles)
     
     return titles
 
 
-def get_tree_values(node, parent=None, title_sep=":", value_sep=","):
+def _get_tree_values(node, parent=None, title_sep=":", value_sep=","):
         
     def has_value(node):
         return hasattr(node, "value")
@@ -371,7 +451,8 @@ def get_tree_values(node, parent=None, title_sep=":", value_sep=","):
         value = ""
     
     is_option = False
-    if hasattr(node, "inquire") and getattr(node, "inquire") in ["list", "checkbox"]:
+    if (hasattr(node, "inquire") and
+        getattr(node, "inquire") in ["list", "checkbox"]):
         is_option = True
     
     if is_option:
@@ -395,39 +476,7 @@ def get_tree_values(node, parent=None, title_sep=":", value_sep=","):
         else:
             name = f"{parent}{title_sep}{child.name}"
                 
-        child_values = get_tree_values(child, name, title_sep, value_sep)
+        child_values = _get_tree_values(child, name, title_sep, value_sep)
         values.extend(child_values)
     
     return values
-
-
-def _write_excel(titles, db):
-    
-    wb = Workbook()
-    ws = wb.active
-    
-    ws.append(titles)
-    
-    for record in db.get("Title").values():
-        
-        row_values = [None] * len(titles)
-        record_titles = get_tree_titles(record)
-        record_values = get_tree_values(record.root_node)
-        
-        for col_title, col_value in zip(record_titles, record_values):
-            col_idx = titles.index(col_title)
-            row_values[col_idx] = col_value
-    
-        ws.append(row_values)
-    
-    for cell in ws["1:1"]:
-        cell.font = Font(bold=True)
-    
-    dim_holder = DimensionHolder(worksheet=ws)
-    
-    for col in range(ws.min_column, ws.max_column + 1):
-        dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
-    
-    ws.column_dimensions = dim_holder
-    
-    wb.save("test.xlsx")

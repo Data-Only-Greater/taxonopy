@@ -178,6 +178,30 @@ def _db_update(parser,context,topargs):
                    args.schema,
                    args.db)
 
+
+@subcmd('dump',
+        dbcommands,
+        dbcommands_help,
+        help="dump database to excel")
+def _db_dump(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of xlsx file to create',
+                        action="store")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import dump_xl
+    dump_xl(args.path, args.schema, args.db)
+
 ### SCHEMA
 
 @subcmd('schema',

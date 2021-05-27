@@ -22,7 +22,10 @@ setuptools.setup(
     install_requires=[
         'anytree',
         'blessed',
+        'graphviz',
         'inquirer',
+        'openpyxl',
+        'Pillow,',
         'tinydb'
     ],
     entry_points = {
