@@ -254,7 +254,7 @@ def dump_xl(out,
             db_path="db.json",
             img_format='png',
             title_sep=":",
-            value_sep=","):
+            value_sep=", "):
     
     # Remove xls or xlsx extension if added
     if out[-5:] == ".xlsx":
@@ -435,7 +435,7 @@ def _get_child_titles(node, parent=None, sep=":"):
     return titles
 
 
-def _get_tree_values(node, parent=None, title_sep=":", value_sep=","):
+def _get_tree_values(node, parent=None, title_sep=":", value_sep=", "):
         
     def has_value(node):
         return hasattr(node, "value")
