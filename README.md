@@ -48,10 +48,10 @@ not tested.
 3. Install taxonopy (in development mode):
     
     This step assumes that the source code has been downloaded to some local
-    folder: `/path/to/taxonopy/folder`.
+    folder: `/path/to/taxonopy`.
     
     ```
-    > cd /path/to/taxonopy/folder
+    > cd /path/to/taxonopy
     > pip install -e .
     ```
 
@@ -470,6 +470,21 @@ the available options, type:
 ```
 > taxonopy db -h
 ```
+
+Lets add some records based on the schema created in the tutorial above for
+toasters. If you didn't create the schema, you can copy a version from the
+`examples/toasters` directory to an empty folder, like so:
+
+```
+> mkdir temp
+> cp /path/to/taxonopy/examples/toasters/schema.json temp
+> cd temp
+```
+
+If you've already got the schema, then just ensure that your command line
+working directory is in the same folder.
+
+
 
 
 [1]: https://towardsdatascience.com/represent-hierarchical-data-in-python-cd36ada5c71a
