@@ -23,7 +23,11 @@ from .record import CLITheme, CLIRecordBuilder, FlatRecordBuilder
 
 class DataBase:
     
-    def __init__(self, db_path="db.json"):
+    def __init__(self, db_path="db.json", check_existing=False):
+        
+        if check_existing and not os.path.isfile(db_path):
+            raise IOError(f"Path {db_path} does not contain a valid database")
+        
         self._db = TinyDB(db_path,
                           sort_keys=True,
                           indent=4,
@@ -107,7 +111,7 @@ def new_record(schema_path="schema.json",
 def show_count(path,
                value=None,
                db_path="db.json"):
-    db = DataBase(db_path)
+    db = DataBase(db_path, check_existing=True)
     count = db.count(path, value)
     msg = f"{path}: {count}"
     print(msg)
@@ -148,7 +152,7 @@ def show_nodes(paths=None, db_path="db.json"):
         paths = (paths,)
     
     if len(paths) > 2: multi_field = True
-    db = DataBase(db_path)
+    db = DataBase(db_path, check_existing=True)
     records = db.all()
     
     msg_rows = []
@@ -193,7 +197,7 @@ def show_nodes(paths=None, db_path="db.json"):
 
 
 def show_records(path, value=None, exact=False, db_path="db.json"):
-    db = DataBase(db_path)
+    db = DataBase(db_path, check_existing=True)
     for record in db.get(path, value, exact).values(): print(record)
 
 
@@ -206,7 +210,7 @@ def update_records(path,
     
     schema = SCHTree.from_json(schema_path)
     builder = CLIRecordBuilder(schema)
-    db = DataBase(db_path)
+    db = DataBase(db_path, check_existing=True)
     
     for doc_id, record in db.get(path, value, exact).items():
         
@@ -269,7 +273,7 @@ def dump_xl(out,
     out += ".xlsx"
     
     schema = SCHTree.from_json(schema_path)
-    db = DataBase(db_path)
+    db = DataBase(db_path, check_existing=True)
     wb = Workbook()
     
     ws = wb.active
@@ -335,8 +339,8 @@ def load_xl(db_path, xl_path, schema_path="schema.json", append=False):
     schema = SCHTree.from_json(schema_path)
     builder = FlatRecordBuilder(schema)
     
-    db = DataBase(db_path)
     wb = load_workbook(xl_path)
+    db = DataBase(db_path)
     
     ws = wb['DataBase']
     titles = [cell.value for cell in ws[1]]

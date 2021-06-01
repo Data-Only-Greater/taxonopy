@@ -84,49 +84,6 @@ def _db(parser,context,topargs):
     handler.run(topargs)
 
 
-@subcmd('count',
-        dbcommands,
-        dbcommands_help,
-        help="count records")
-def _db_count(parser,context,topargs):
-    
-    parser.add_argument('path',
-                        help='path of field to count',
-                        action='store')
-    parser.add_argument('--value',
-                        help='only matching given value',
-                        action="store")
-    parser.add_argument('--db',
-                        help='path to the database (default is ./db.json)',
-                        action="store",
-                        default="db.json")
-    
-    args = parser.parse_args(topargs)
-    
-    from .db import show_count
-    show_count(args.path, args.value, args.db)
-
-
-@subcmd('list',
-        dbcommands,
-        dbcommands_help,
-        help="list node for all records")
-def _db_list(parser,context,topargs):
-    
-    parser.add_argument('--path',
-                        help='path of field to display (default is root)',
-                        action='append')
-    parser.add_argument('--db',
-                        help='path to the database (default is ./db.json)',
-                        action="store",
-                        default="db.json")
-    
-    args = parser.parse_args(topargs)
-    
-    from .db import show_nodes
-    show_nodes(args.path, args.db)
-
-
 @subcmd('new',
         dbcommands,
         dbcommands_help,
@@ -146,32 +103,6 @@ def _db_new(parser,context,topargs):
     
     from .db import new_record
     new_record(args.schema, args.db)
-
-
-@subcmd('show',
-        dbcommands,
-        dbcommands_help,
-        help="show full records")
-def _db_show(parser,context,topargs):
-    
-    parser.add_argument('path',
-                        help='path of field to search',
-                        action="store")
-    parser.add_argument('--value',
-                        help='only show records with matching field value',
-                        action="store")
-    parser.add_argument('--exact',
-                        help='only show exact value matches',
-                        action="store_true")
-    parser.add_argument('--db',
-                        help='path to the database (default is ./db.json)',
-                        action="store",
-                        default="db.json")
-    
-    args = parser.parse_args(topargs)
-    
-    from .db import show_records
-    show_records(args.path, args.value, args.exact, args.db)
 
 
 @subcmd('update',
@@ -204,12 +135,97 @@ def _db_update(parser,context,topargs):
     args = parser.parse_args(topargs)
     
     from .db import update_records
-    update_records(args.path,
-                   args.value,
-                   args.exact,
-                   args.field,
-                   args.schema,
-                   args.db)
+    
+    try:
+        update_records(args.path,
+                       args.value,
+                       args.exact,
+                       args.field,
+                       args.schema,
+                       args.db)
+    except IOError:
+        print("Database not found")
+
+
+@subcmd('list',
+        dbcommands,
+        dbcommands_help,
+        help="list node for all records")
+def _db_list(parser,context,topargs):
+    
+    parser.add_argument('--path',
+                        help='path of field to display (default is root)',
+                        action='append')
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_nodes
+    
+    try:
+        show_nodes(args.path, args.db)
+    except IOError:
+        print("Database not found")
+
+
+@subcmd('count',
+        dbcommands,
+        dbcommands_help,
+        help="count records")
+def _db_count(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of field to count',
+                        action='store')
+    parser.add_argument('--value',
+                        help='only matching given value',
+                        action="store")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_count
+    
+    try:
+        show_count(args.path, args.value, args.db)
+    except IOError:
+        print("Database not found")
+
+
+@subcmd('show',
+        dbcommands,
+        dbcommands_help,
+        help="show full records")
+def _db_show(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of field to search',
+                        action="store")
+    parser.add_argument('--value',
+                        help='only show records with matching field value',
+                        action="store")
+    parser.add_argument('--exact',
+                        help='only show exact value matches',
+                        action="store_true")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_records
+    
+    try:
+        show_records(args.path, args.value, args.exact, args.db)
+    except IOError:
+        print("Database not found")
 
 
 @subcmd('dump',
@@ -233,7 +249,11 @@ def _db_dump(parser,context,topargs):
     args = parser.parse_args(topargs)
     
     from .db import dump_xl
-    dump_xl(args.path, args.schema, args.db)
+    
+    try:
+        dump_xl(args.path, args.schema, args.db)
+    except IOError:
+        print("Database not found")
 
 
 @subcmd('load',
