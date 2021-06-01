@@ -48,12 +48,14 @@ def parse_vars(items):
     
     Source: https://stackoverflow.com/a/52014520
     """
+    
     d = {}
-
+    
     if items:
         for item in items:
             key, value = _parse_var(item)
             d[key] = value
+    
     return d
 
 

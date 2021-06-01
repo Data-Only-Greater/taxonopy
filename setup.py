@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.1",
     author="Mathew Topper",
     author_email="mathew.topper@dataonlygreater.com",
-    description="A text-based database for taxonomic hierarchies",
+    description="Taxonomic hierarchies and records",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Data-Only-Greater/taxonopy",

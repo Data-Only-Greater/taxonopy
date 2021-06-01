@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import argparse
 import datetime
+
+import inquirer
+from inquirer.render.console import ConsoleRender
 from anytree.resolver import ChildResolverError
 
 from .arghandler import ArgumentHandler, parse_vars, subcmd
+from .record import CLITheme
 
 subcommands = {}
 subcommands_help = {}
@@ -283,11 +288,70 @@ def _schema_show(parser,context,topargs):
                         default="schema.json")
     
     args = parser.parse_args(topargs)
+    if not os.path.isfile(args.schema): return
     
     from .tree import SCHTree
     schema = SCHTree.from_json(args.schema)
+    print(schema)
+
+
+@subcmd('new',
+        schemacommands,
+        schemacommands_help,
+        help="create the root field in a new schema")
+def _schema_new(parser,context,topargs):
+    
+    parser.add_argument('name',
+                        help='name of the root field',
+                        action="store")
+    parser.add_argument("--attributes",
+                        metavar="KEY=VALUE",
+                        nargs='+',
+                        help="set field attributes as key-value pairs "
+                             "(do not put spaces before or after the = sign). "
+                             "If a value contains spaces, you should define "
+                             "it with double quotes: "
+                             'foo="this is a sentence". Note that '
+                             "values are always treated as strings. "
+                             "(pre-added: 'type=str required=True'). ")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    parser.add_argument('--dry-run',
+                        help=('show new schema without saving'),
+                        action="store_true")
+    
+    args = parser.parse_args(topargs)
+    
+    if os.path.isfile(args.schema):
+        
+        message = f"A schema already exists at path {args.schema}. Overwrite?"
+        
+        try:
+            choice = inquirer.list_input(message,
+                                         render=ConsoleRender(
+                                                             theme=CLITheme()),
+                                         choices=['yes', 'no'],
+                                         default='no')
+        except KeyboardInterrupt:
+                sys.exit()
+        
+        if choice == "no": return
+        
+    from .tree import SCHTree
+    
+    node_attr = parse_vars(args.attributes)
+    if "type" not in node_attr: node_attr["type"] = "str"
+    if "required" not in node_attr: node_attr["required"] = "True"
+    
+    schema = SCHTree()
+    schema.add_node(args.name, **node_attr)
     
     print(schema)
+    
+    if args.dry_run: return
+    schema.to_json(args.schema)
 
 
 @subcmd('add',

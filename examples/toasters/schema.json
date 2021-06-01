@@ -1,0 +1,76 @@
+{
+    "L0": [
+        {
+            "name": "Name",
+            "required": "True",
+            "type": "str"
+        }
+    ],
+    "L1": [
+        {
+            "name": "Capacity",
+            "parent": "Name",
+            "required": "True",
+            "type": "int"
+        },
+        {
+            "name": "Manufacturing Date",
+            "parent": "Name",
+            "import": "datetime",
+            "type": "datetime.date.fromisoformat"
+        },
+        {
+            "name": "Colour",
+            "parent": "Name",
+            "inquire": "list",
+            "required": "True"
+        },
+        {
+            "name": "Features",
+            "parent": "Name",
+            "inquire": "checkbox"
+        }
+    ],
+    "L2": [
+        {
+            "name": "Black",
+            "parent": "Name/Colour"
+        },
+        {
+            "name": "Brown",
+            "parent": "Name/Colour"
+        },
+        {
+            "name": "Blue",
+            "parent": "Name/Colour"
+        },
+        {
+            "name": "Browning Control",
+            "parent": "Name/Features",
+            "inquire": "list",
+            "required": "True"
+        },
+        {
+            "name": "Defrost",
+            "parent": "Name/Features"
+        },
+        {
+            "name": "Reheat",
+            "parent": "Name/Features"
+        },
+        {
+            "name": "Bluetooth",
+            "parent": "Name/Features"
+        }
+    ],
+    "L3": [
+        {
+            "name": "Analog",
+            "parent": "Name/Features/Browning Control"
+        },
+        {
+            "name": "Digital",
+            "parent": "Name/Features/Browning Control"
+        }
+    ]
+}
