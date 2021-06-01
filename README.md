@@ -75,9 +75,9 @@ Using conda:
 Taxonopy requires two parts. Firstly, a schema is defined which provides a
 hierarchical structure. Secondly, records are created based upon the schema.
 
-Taxonopy is mainly used through the command line, as present, so all the 
-commands below are executed in a [Windows PowerShell]. The root command is
-called `taxonopy` and you can get help by typing:
+Taxonopy is mainly used through a command line interface (CLI), as present, so 
+all the commands below are executed in a [Windows PowerShell]. The root CLI
+command is called `taxonopy` and it provides help by typing:
 
 ```
 > taxonopy -h
@@ -100,8 +100,8 @@ accidents)
 ### Schemas
 
 To demonstrate schemas and their features, let's create an example for a 
-toaster. When working with schemas, the `schema` subcommand of `taxonopy` is
-used. For help on the options, type:
+toaster. When working with schemas, the `schema` subcommand of the `taxonopy` 
+CLI is used. For help on the options, type:
 
 ```
 > taxonopy schema -h
@@ -458,6 +458,17 @@ Name required=True type=str
     ├── Reheat
     └── Bluetooth
 
+```
+
+### Database and Records
+
+Once a schema is defined, records and be created using the schema and stored 
+in a text-based database (also a json file). The main `taxonopy` CLI 
+subcommand used for working with databases and records is `db`. For help on 
+the available options, type:
+
+```
+> taxonopy db -h
 ```
 
 
