@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import argparse
 import datetime
 from anytree.resolver import ChildResolverError
@@ -35,7 +36,34 @@ def main():
                               use_subcommand_help=True,
                               registered_subcommands=subcommands,
                               registered_subcommands_help=subcommands_help)
+    
+    handler.add_argument('-v', '--version',
+                        help='print version and exit',
+                        action="store_true")
+    
+    # Handle -v or --version using sys.argv
+    if _print_version(): return
+    
+    # Handle remaining args
     handler.run()
+
+
+def _print_version():
+    
+    if len(sys.argv) == 1: return False
+    if set(sys.argv[1:]) & set(['-h', '--help']): return False
+    
+    test_arg = sys.argv[1]
+    should_exit = False
+    
+    if test_arg in ['-v', '--version']:
+        from . import get_name, get_version
+        print(f"{get_name()} {get_version()}")
+        should_exit = True
+    
+    return should_exit
+
+
 
 ### DATABASE
 
