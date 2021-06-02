@@ -1,0 +1,453 @@
+{
+    "_default": {
+        "1": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "BEKO Cosmopolis TAM8402B"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "4"
+                },
+                {
+                    "import": "datetime",
+                    "name": "Manufacturing Date",
+                    "parent": "Name",
+                    "type": "datetime.date.fromisoformat",
+                    "value": "2021-06-02"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Blue",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                },
+                {
+                    "name": "Reheat",
+                    "parent": "Name/Features"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "2": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "MORPHY RICHARDS Evoke One"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "4"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Black",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                },
+                {
+                    "name": "Reheat",
+                    "parent": "Name/Features"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "3": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "TEFAL Tefal Smartn Light TT640840"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "2"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Black",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                },
+                {
+                    "name": "Reheat",
+                    "parent": "Name/Features"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Digital",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "4": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "Griffin Smart Connected Toaster"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "2"
+                },
+                {
+                    "import": "datetime",
+                    "name": "Manufacturing Date",
+                    "parent": "Name",
+                    "type": "datetime.date.fromisoformat",
+                    "value": "2017-01-04"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Blue",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                },
+                {
+                    "name": "Bluetooth",
+                    "parent": "Name/Features"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Digital",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "5": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "Bosch TAT4P429DE"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "2"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Brown",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                },
+                {
+                    "name": "Reheat",
+                    "parent": "Name/Features"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "6": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "Kenwood Elegancy"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "4"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Blue",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                },
+                {
+                    "name": "Defrost",
+                    "parent": "Name/Features"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "7": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "Sunbeam Model T-20"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "2"
+                },
+                {
+                    "import": "datetime",
+                    "name": "Manufacturing Date",
+                    "parent": "Name",
+                    "type": "datetime.date.fromisoformat",
+                    "value": "1949-01-01"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Blue",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        },
+        "8": {
+            "L0": [
+                {
+                    "name": "Name",
+                    "required": "True",
+                    "type": "str",
+                    "value": "Dualit Bun Toaster"
+                }
+            ],
+            "L1": [
+                {
+                    "name": "Capacity",
+                    "parent": "Name",
+                    "required": "True",
+                    "type": "int",
+                    "value": "6"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Colour",
+                    "parent": "Name",
+                    "required": "True"
+                },
+                {
+                    "inquire": "checkbox",
+                    "name": "Features",
+                    "parent": "Name"
+                }
+            ],
+            "L2": [
+                {
+                    "name": "Black",
+                    "parent": "Name/Colour"
+                },
+                {
+                    "inquire": "list",
+                    "name": "Browning Control",
+                    "parent": "Name/Features",
+                    "required": "True"
+                }
+            ],
+            "L3": [
+                {
+                    "name": "Analog",
+                    "parent": "Name/Features/Browning Control"
+                }
+            ]
+        }
+    }
+}

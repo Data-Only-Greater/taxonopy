@@ -359,9 +359,9 @@ Name type=str required=True
 
 ```
 
-#### Chaning the order of fields
+#### Changing the order of fields
 
-Presently it's not possible to change the order of in a schema using the 
+Presently it's not possible to change the order of fields in a schema using the 
 taxonopy package. For simple reordering, direct manipulation of the json file 
 is possible. Say, for instance, we want to move the "Browning Control" field 
 back to its original position. In the json file, the field is seen at the 
@@ -462,7 +462,7 @@ Name required=True type=str
 
 ### Database and Records
 
-Once a schema is defined, records and be created using the schema and stored 
+Once a schema is defined, records can be created using the schema and stored 
 in a text-based database (also a json file). The main `taxonopy` CLI 
 subcommand used for working with databases and records is `db`. For help on 
 the available options, type:
@@ -482,10 +482,356 @@ toasters. If you didn't create the schema, you can copy a version from the
 ```
 
 If you've already got the schema, then just ensure that your command line
-working directory is in the same folder.
+working directory is in the same folder. Also, if you have not yet done so,
+remember to activate the conda environment:
+
+```
+> conda activate _taxonopy
+(_taxonopy) >
+```
+
+#### Add your First Toaster
+
+We create a new taxonopy database by adding our first record. For this task we 
+use taxonopy's `db new` subcommand. An existing schema is expected; by default 
+it's assumed to be called `schema.json` and reside in the current directory. 
+This can be changed with the `--schema` argument if desired. A new database 
+will be created, if it doesn't already exist, called, by default, `db.json`, 
+again placed in the current directory. To change this use the `--db` argument. 
+Working in our existing temporary directory we can simply type:
+
+```
+> taxonopy db new
+[?] Name [str] (required):
+
+```
+
+At this point, we are presented with the fields in our schema to be completed
+for our new record. As the current field is required, some text must be
+entered to move onto the next field. Let's add a name:
+
+```
+[?] Name [str] (required): BEKO Cosmopolis TAM8402B
+[?] Capacity [int] (required):
+
+```
+
+It accepted the name, now we must add the toaster's capacity:
+
+```
+[?] Capacity [int] (required): 4
+[?] Manufacturing Date [datetime.date.fromisoformat]:
+
+```
+
+The next field is for the manufacturing date. This field can only accept 
+data that is valid inpur to the `datetime.date.fromisoformat` function. Let's
+try adding an incorrect format:
+
+```
+[?] Manufacturing Date [datetime.date.fromisoformat]: 2nd June 2021
+Given value is not compatible with type 'datetime.date.fromisoformat'
+[?] Manufacturing Date [datetime.date.fromisoformat]:
+
+```
+
+OK, let's try the correct format:
+
+```
+[?] Manufacturing Date [datetime.date.fromisoformat]: 2021-06-02
+[?] Colour: Black
+ > Black
+   Brown
+   Blue
+
+```
+
+The next field is a required list type. So, we must select one option. To move
+between options use the arrow keys and to select an option press enter. Our
+toaster is blue:
+
+```
+[?] Colour: Blue
+   Black
+   Brown
+ > Blue
+
+[?] Features:
+ > o Browning Control
+   o Defrost
+   o Reheat
+   o Bluetooth
+
+```
+
+The Features field allows selection of multiple options. The arrow keys are
+used to nagivate between the options and the **space bar** is used to select
+or deselect them. When finished press the enter key. Let's add features to
+our toaster:
+
+```
+[?] Features:
+   X Browning Control
+   X Defrost
+ > X Reheat
+   o Bluetooth
+
+[?] Browning Control: Analog
+ > Analog
+   Digital
+
+```
+
+The Browning Control field requires extra data about the type of browning
+control. Let's choose Digital:
+
+```
+[?] Browning Control: Digital
+   Analog
+ > Digital
+
+Name value=BEKO Cosmopolis TAM8402B type=str required=True
+├── Capacity value=4 type=int required=True
+├── Manufacturing Date value=2021-06-02 import=datetime type=datetime.date.fromisoformat
+├── Colour inquire=list required=True
+│   └── Blue
+└── Features inquire=checkbox
+    ├── Browning Control inquire=list required=True
+    │   └── Digital
+    ├── Defrost
+    └── Reheat
+
+[?] Store record with Name 'BEKO Cosmopolis TAM8402B'?: yes
+ > yes
+   retry
+   quit
+
+```
+
+Now we have completed all of the fields, taxonopy shows us the full record
+and asks us if we want to store it. If we want to edit something we can
+select `retry` and we can pass through the fields again (the original input
+is remembered). If we don't want the record we can select `quit` to exit. Let's
+choose `yes` to store our toaster. Now, we will see that a database file
+has been created in the working directory and it contains some data.
+
+```
+> ls
 
 
+    Directory: E:\Programming\Python\git\taxonopy\temp
 
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        02/06/2021     11:07           2005 db.json
+-a----        01/06/2021     17:34           1737 schema.json
+
+```
+
+#### Searching for and Editing a Record
+
+It might be that something is wrong with one of the records entered into your
+database. For instance, the browning control on the BEKO Cosmopolis TAM8402B
+is, in fact, analog not digital, so let's fix it. The CLI command for changing
+existing records is `db update`. Similarly to before, the command has default
+locations for the schema and database files, which can be changed if required.
+For commands like `update`, where we want to select certain records, we
+must enter some search parameters. These are provided by the positional `path`
+argument and the optional `--value` and `--exact` arguments.
+
+The `path` argument refers to the field that we would like to match against
+and the `--value` argument refers to the values that the field can take. 
+`--value` is optional and if it's not given, the command will return any
+records containing that field - if we used the root path "Name", in our example,
+with no `--value` argument, the command would return all records in the
+database. The `--exact` argument is given if the match to the given value must
+be exact. Otherwise all partial matches will be returned.
+
+Finally, the `--field` argument let's us specify that we only want to edit
+one field in the returned records. This can be useful for precise edits or
+if a new field is added and all records need to be updated, for instance. 
+The `--field` argument takes the full path to the field, in the schema. Let's
+use all the options to fix our record:
+
+```
+> taxonopy db update Name --value "BEKO Cosmopolis TAM8402B" --exact --field "Name/Features/Browning Control"
+[?] Update record with Name 'BEKO Cosmopolis TAM8402B'?: yes
+ > yes
+   no
+   quit
+
+```
+
+Here, we search the "Name" field for the exact value "BEKO Cosmopolis TAM8402B".
+We indicate that we just want to edit the "Name/Features/Browning Control"
+field in the returned records. As the `update` command can return more than
+one record for updating, taxonopy asks us if we want to edit this record,
+or quit the update process at this point. We select `yes`, and then change
+the browning control type:
+
+```
+[?] Update record with Name 'BEKO Cosmopolis TAM8402B'?: yes
+ > yes
+   no
+   quit
+
+[?] Browning Control: Analog
+ > Analog
+   Digital
+
+Name required=True value=BEKO Cosmopolis TAM8402B type=str
+├── Capacity required=True value=4 type=int
+├── Manufacturing Date value=2021-06-02 type=datetime.date.fromisoformat import=datetime
+├── Colour inquire=list required=True
+│   └── Blue
+└── Features inquire=checkbox
+    ├── Defrost
+    ├── Reheat
+    └── Browning Control inquire=list required=True
+        └── Analog
+
+[?] Store updated record?: yes
+ > yes
+   no
+   retry
+   quit
+
+```
+
+As when we added a new record, taxonopy shows the updated record and asks
+if we want to store it, retry or quit. After choosing `yes`, we can see that
+the database file has been modified:
+
+```
+> ls
+
+
+    Directory: E:\Programming\Python\git\taxonopy\temp
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        02/06/2021     11:34           2004 db.json
+-a----        01/06/2021     17:34           1737 schema.json
+
+```
+
+#### Inspecting Records
+
+It's useful at this point to have more records in our toaster database. Feel 
+free to add more yourself, but if you want a shortcut a database file 
+populated with 8 records is available in the 
+`/path/to/taxonopy/examples/toasters` directory called `db.json`.  The 
+taxonopy CLI current offers 3 commands for inspecting the records in the 
+database: `count`, `show` and `list`.
+
+The `count` subcommand allows users to count how many records contain a
+particular field with, optionally, a particular value. For instance, let's
+see how many records have "Name" fields containing "Toaster":
+
+```
+> taxonopy db count Name --value Toaster
+Name: 2
+
+```
+
+By adding the `--exact` argument, we can see how many records are precisely
+named "Toaster":
+
+```
+> taxonopy db count Name --value Toaster --exact
+Name: 0
+
+```
+
+The `show` command works similarly to the `count` command, except that the
+output contains the full records. For our toasters with names containing 
+"Toaster" we get:
+
+```
+> taxonopy db show Name --value Toaster
+Name type=str value=Dualit Bun Toaster required=True
+├── Capacity type=int value=6 required=True
+├── Colour inquire=list required=True
+│   └── Black
+└── Features inquire=checkbox
+    └── Browning Control inquire=list required=True
+        └── Analog
+
+Name type=str value=Griffin Smart Connected Toaster required=True
+├── Capacity type=int value=2 required=True
+├── Manufacturing Date type=datetime.date.fromisoformat value=2017-01-04 import=datetime
+├── Colour inquire=list required=True
+│   └── Blue
+└── Features inquire=checkbox
+    ├── Browning Control inquire=list required=True
+    │   └── Digital
+    ├── Defrost
+    └── Bluetooth
+
+```
+
+The `list` command filters the output of all records in the database. It it's 
+most basic usage it will display the value of the root field for all the 
+records:
+
+```
+> taxonopy db list
+Name: BEKO Cosmopolis TAM8402B
+Name: Bosch TAT4P429DE
+Name: Dualit Bun Toaster
+Name: Griffin Smart Connected Toaster
+Name: Kenwood Elegancy
+Name: MORPHY RICHARDS Evoke One
+Name: Sunbeam Model T-20
+Name: TEFAL Tefal Smartn Light TT640840
+
+```
+
+To display more fields at once, multiple `--path` arguments can be given to
+the command. So, for instance, to see the Name, Capacity and Browning Control
+fields of all the records, the follow command is given:
+
+```
+> taxonopy db list --path Name --path Name/Capacity --path "Name/Features/Browning Control"
+Name: BEKO Cosmopolis TAM8402B          | Capacity: 4 | Browning Control: Analog
+Name: Bosch TAT4P429DE                  | Capacity: 2 | Browning Control: Analog
+Name: Dualit Bun Toaster                | Capacity: 6 | Browning Control: Analog
+Name: Griffin Smart Connected Toaster   | Capacity: 2 | Browning Control: Digital
+Name: Kenwood Elegancy                  | Capacity: 4 | Browning Control: Analog
+Name: MORPHY RICHARDS Evoke One         | Capacity: 4 | Browning Control: Analog
+Name: Sunbeam Model T-20                | Capacity: 2 | Browning Control: Analog
+Name: TEFAL Tefal Smartn Light TT640840 | Capacity: 2 | Browning Control: Digital
+
+```
+
+When using `list` with optional fields, if one or two paths are given then
+only records containing all the fields are returned:
+
+```
+> taxonopy db list --path Name --path "Name/Manufacturing Date"
+Name: BEKO Cosmopolis TAM8402B        | Manufacturing Date: 2021-06-02
+Name: Griffin Smart Connected Toaster | Manufacturing Date: 2017-01-04
+Name: Sunbeam Model T-20              | Manufacturing Date: 1949-01-01
+
+```
+
+If an optional field is included where three or more paths are used, then at
+least two of the fields must be contained by the record for it to be displayed:
+
+```
+> taxonopy db list --path Name --path "Name/Manufacturing Date" --path "Name/Features/Browning Control"
+Name: BEKO Cosmopolis TAM8402B          | Manufacturing Date: 2021-06-02 | Browning Control: Analog
+Name: Bosch TAT4P429DE                  |                                | Browning Control: Analog
+Name: Dualit Bun Toaster                |                                | Browning Control: Analog
+Name: Griffin Smart Connected Toaster   | Manufacturing Date: 2017-01-04 | Browning Control: Digital
+Name: Kenwood Elegancy                  |                                | Browning Control: Analog
+Name: MORPHY RICHARDS Evoke One         |                                | Browning Control: Analog
+Name: Sunbeam Model T-20                | Manufacturing Date: 1949-01-01 | Browning Control: Analog
+Name: TEFAL Tefal Smartn Light TT640840 |                                | Browning Control: Digital
+
+```
 
 [1]: https://towardsdatascience.com/represent-hierarchical-data-in-python-cd36ada5c71a
 [taxonomy-parser]: https://github.com/madagra/taxonomy-parser

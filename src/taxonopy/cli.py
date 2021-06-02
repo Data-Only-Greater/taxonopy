@@ -147,30 +147,6 @@ def _db_update(parser,context,topargs):
         print("Database not found")
 
 
-@subcmd('list',
-        dbcommands,
-        dbcommands_help,
-        help="list node for all records")
-def _db_list(parser,context,topargs):
-    
-    parser.add_argument('--path',
-                        help='path of field to display (default is root)',
-                        action='append')
-    parser.add_argument('--db',
-                        help='path to the database (default is ./db.json)',
-                        action="store",
-                        default="db.json")
-    
-    args = parser.parse_args(topargs)
-    
-    from .db import show_nodes
-    
-    try:
-        show_nodes(args.path, args.db)
-    except IOError:
-        print("Database not found")
-
-
 @subcmd('count',
         dbcommands,
         dbcommands_help,
@@ -227,6 +203,30 @@ def _db_show(parser,context,topargs):
     
     try:
         show_records(args.path, args.value, args.exact, args.db)
+    except IOError:
+        print("Database not found")
+
+
+@subcmd('list',
+        dbcommands,
+        dbcommands_help,
+        help="list node for all records")
+def _db_list(parser,context,topargs):
+    
+    parser.add_argument('--path',
+                        help='path of field to display (default is root)',
+                        action='append')
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from .db import show_nodes
+    
+    try:
+        show_nodes(args.path, args.db)
     except IOError:
         print("Database not found")
 
