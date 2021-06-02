@@ -833,6 +833,71 @@ Name: TEFAL Tefal Smartn Light TT640840 |                                | Brown
 
 ```
 
+#### Exporting and Importing the Database
+
+It can be useful to view the entire database using a spreadsheet. For this
+purpose, taxonopy can flatten the field hierarchy and export the resulting
+table to an Excel file. For the database in the example above, the command
+to export to Excel is:
+
+```
+> taxonopy db dump toasters
+> ls
+
+
+    Directory: E:\Programming\Python\git\taxonopy\temp
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        02/06/2021     11:56          13825 db.json
+-a----        01/06/2021     17:34           1737 schema.json
+-a----        02/06/2021     13:21          70448 toasters.xlsx
+
+```
+
+As can be seen, a new Excel file called "toasters.xlsx" has been created. 
+Within the Excel file, for fields below the second level, the headers of the 
+Excel file are separated with a colon to show the relationships, i.e. for the 
+"Name/Features/Browning Control" field, the header shows "Features:Browning 
+Control".
+
+Correctly formatted Excel files can also be imported to create a new database
+json file using the `db load` command. For the "toasters.xslx" file we just
+created, let's make a new taxonpy database like so:
+
+```
+> taxonopy db load db_new.json .\toasters.xlsx
+> ls
+
+
+    Directory: E:\Programming\Python\git\taxonopy\temp
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        02/06/2021     11:56          13825 db.json
+-a----        02/06/2021     13:30          13825 db_new.json
+-a----        01/06/2021     17:34           1737 schema.json
+-a----        02/06/2021     13:21          70448 toasters.xlsx
+
+
+> taxonopy db list --path Name --path "Name/Manufacturing Date" --path "Name/Features/Browning Control" --db .\db_new.json
+Name: BEKO Cosmopolis TAM8402B          | Manufacturing Date: 2021-06-02 | Browning Control: Analog
+Name: Bosch TAT4P429DE                  |                                | Browning Control: Analog
+Name: Dualit Bun Toaster                |                                | Browning Control: Analog
+Name: Griffin Smart Connected Toaster   | Manufacturing Date: 2017-01-04 | Browning Control: Digital
+Name: Kenwood Elegancy                  |                                | Browning Control: Analog
+Name: MORPHY RICHARDS Evoke One         |                                | Browning Control: Analog
+Name: Sunbeam Model T-20                | Manufacturing Date: 1949-01-01 | Browning Control: Analog
+Name: TEFAL Tefal Smartn Light TT640840 |                                | Browning Control: Digital
+
+```
+
+As we can see, a new file has been created, named `db_new.json`, with the 
+exact same size as the original `db.json` and precisely the same data 
+contained within.
+
 [1]: https://towardsdatascience.com/represent-hierarchical-data-in-python-cd36ada5c71a
 [taxonomy-parser]: https://github.com/madagra/taxonomy-parser
 [anytree]: https://github.com/c0fec0de/anytree

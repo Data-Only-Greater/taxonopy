@@ -283,7 +283,7 @@ def dump_xl(out,
     titles = _get_tree_titles(schema, sep=title_sep)
     ws.append(titles)
     
-    for record in db.get("Title").values():
+    for record in db.get(titles[0]).values():
         
         row_values = [None] * len(titles)
         record_titles = _get_tree_titles(record, sep=title_sep)

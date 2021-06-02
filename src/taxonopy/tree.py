@@ -184,7 +184,8 @@ class Tree:
         r = Resolver()
         path_resolution = path.strip('/').split('/')
         
-        if len(path_resolution) == 1 and self.root_node.name == path:
+        if (len(path_resolution) == 1 and
+            self.root_node.name == path_resolution[0]):
             return self.root_node
         elif len(path_resolution) == 1:
             raise ChildResolverError(self.root_node, path, 'name')
