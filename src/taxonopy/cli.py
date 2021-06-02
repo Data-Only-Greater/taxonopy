@@ -183,6 +183,9 @@ def _db_count(parser,context,topargs):
     parser.add_argument('--value',
                         help='only matching given value',
                         action="store")
+    parser.add_argument('--exact',
+                        help='only show exact value matches',
+                        action="store_true")
     parser.add_argument('--db',
                         help='path to the database (default is ./db.json)',
                         action="store",
@@ -193,7 +196,7 @@ def _db_count(parser,context,topargs):
     from .db import show_count
     
     try:
-        show_count(args.path, args.value, args.db)
+        show_count(args.path, args.value, args.exact, args.db)
     except IOError:
         print("Database not found")
 

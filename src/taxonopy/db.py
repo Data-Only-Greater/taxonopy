@@ -41,8 +41,8 @@ class DataBase:
         return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
                                    for doc in sorted(self._db, key=sorter))
     
-    def count(self, node_path, value=None):
-        return self._db.count(_make_query(node_path, value))
+    def count(self, node_path, value=None, exact=False):
+        return self._db.count(_make_query(node_path, value, exact))
     
     def get(self, node_path, value=None, exact=False):
         query = _make_query(node_path, value, exact)
@@ -110,9 +110,10 @@ def new_record(schema_path="schema.json",
 
 def show_count(path,
                value=None,
+               exact=False,
                db_path="db.json"):
     db = DataBase(db_path, check_existing=True)
-    count = db.count(path, value)
+    count = db.count(path, value, exact)
     msg = f"{path}: {count}"
     print(msg)
 
