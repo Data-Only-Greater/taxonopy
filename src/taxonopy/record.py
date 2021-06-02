@@ -200,8 +200,8 @@ class CLIRecordBuilder(RecordBuilderBase):
                     val_type(value)
                 except:
                     print( "Given value is not compatible with type "
-                          f"'{val_type}'" )
-                    value = ""
+                          f"'{node_attr['type']}'" )
+                    continue
             
             if value or not required: break
         
