@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 from anytree import LevelOrderGroupIter, Node, RenderTree
 from anytree.exporter import UniqueDotExporter
-from anytree.resolver import Resolver
+from anytree.resolver import ChildResolverError, Resolver
 from anytree.search import findall
 
 # TODO make the color scheme dynamic
@@ -184,8 +184,10 @@ class Tree:
         r = Resolver()
         path_resolution = path.strip('/').split('/')
         
-        if len(path_resolution) == 1:
+        if len(path_resolution) == 1 and self.root_node.name == path:
             return self.root_node
+        elif len(path_resolution) == 1:
+            raise ChildResolverError(self.root_node, path, 'name')
         
         path_relative = '/'.join(path_resolution[1:])
         
