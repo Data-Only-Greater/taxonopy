@@ -179,7 +179,7 @@ def show_nodes(paths=None, db_path="db.json"):
             if all(msgs): msg_rows.append(msgs)
             continue
         
-        filtered_msgs = tuple(x for x in msgs if x)
+        filtered_msgs = tuple(x if x else "" for x in msgs )
         if len(filtered_msgs) < 2: continue
         msg_rows.append(filtered_msgs)
     
