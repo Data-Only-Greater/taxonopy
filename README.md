@@ -65,10 +65,10 @@ not tested.
 ## Uninstallation
 
 Using conda:
-    
-    ```
-    > conda remove -n _taxonopy --all
-    ```
+
+```
+> conda remove -n _taxonopy --all
+```
 
 ## Tutorial
 
