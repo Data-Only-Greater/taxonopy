@@ -287,9 +287,9 @@ def dump_xl(out,
         
         row_values = [None] * len(titles)
         record_titles = _get_tree_titles(record, sep=title_sep)
-        record_values = _get_tree_values(record.root_node,
-                                         title_sep=title_sep,
-                                         value_sep=value_sep)
+        record_values = _get_tree_attrs(record.root_node,
+                                        "value",
+                                        value_sep=value_sep)
         
         for col_title, col_value in zip(record_titles, record_values):
             col_idx = titles.index(col_title)
@@ -463,19 +463,19 @@ def _get_child_titles(node, parent=None, sep=":"):
     return titles
 
 
-def _get_tree_values(node, parent=None, title_sep=":", value_sep=", "):
+def _get_tree_attrs(node, attr, value_sep=", "):
         
-    def has_value(node):
-        return hasattr(node, "value")
+    def has_attr(node):
+        return hasattr(node, attr)
     
-    def get_value(node):
-        return getattr(node, "value")
+    def get_attr(node):
+        return getattr(node, attr)
     
-    values = []
-    prep_values = []
+    results = []
+    prep_results = []
     
-    if has_value(node):
-        prep_values.append(get_value(node))
+    if has_attr(node):
+        prep_results.append(get_attr(node))
     
     is_option = False
     if (hasattr(node, "inquire") and
@@ -484,22 +484,18 @@ def _get_tree_values(node, parent=None, title_sep=":", value_sep=", "):
     
     if is_option:
         for child in node.children:
-            prep_values.append(child.name)
+            prep_results.append(child.name)
     
-    value = value_sep.join(sorted(prep_values))
-    values.append(value)
+    result = value_sep.join(sorted(prep_results))
+    if not result: result = None
+    results.append(result)
     
     for child in node.children:
-    
+        
         if (is_option and
             not (child.children or hasattr(child, "type"))): continue
         
-        if parent is None:
-            name = child.name
-        else:
-            name = f"{parent}{title_sep}{child.name}"
-                
-        child_values = _get_tree_values(child, name, title_sep, value_sep)
-        values.extend(child_values)
+        child_results = _get_tree_attrs(child, attr, value_sep)
+        results.extend(child_results)
     
-    return values
+    return results
