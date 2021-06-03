@@ -70,13 +70,15 @@ Using conda:
     > conda remove -n _taxonopy --all
     ```
 
-## Usage
+## Tutorial
 
-Taxonopy requires two parts. Firstly, a schema is defined which provides a
-hierarchical structure. Secondly, records are created based upon the schema.
+A typical user of taxonopy will create a schema (a subsumptive containment 
+hierarchy) for structuring their data and then populate a database with 
+records based upon the schema. This section provides a tutorial to illustrate 
+all of the taxonopy operations used for completing these tasks.
 
-Taxonopy is mainly used through a command line interface (CLI), as present, so 
-all the commands below are executed in a [Windows PowerShell]. The root CLI
+Taxonopy is principally operated using a command line interface (CLI) so 
+all the examples below are executed in a [Windows PowerShell]. The root CLI
 command is called `taxonopy` and it provides help by typing:
 
 ```
@@ -89,13 +91,29 @@ If this doesn't work, make sure that your conda environment is activated, i.e.
 > conda activate _taxonopy
 ```
 
-It is recommend to run the tutorials below in a clean directory to prevent any
-accidents)
+It is also recommend to run the tutorials below in a clean directory to prevent 
+any accidents):
 
 ```
 > mkdir temp
 > cd temp
 ```
+
+Table of contents:
+
+* [Schemas](#Schemas)
+    - [Creating the root field](#creating-the-root-field)
+    - [Adding a field that takes an integer](#adding-a-field-that-takes-an-integer)
+    - [Adding a field that takes a date](#adding-a-field-that-takes-a-date)
+    - [Fields that take a single selection from a list of choices](#fields-that-take-a-single-selection-from-a-list-of-choices)
+    - [Fields that take multiple selections from a list of choices](#fields-that-take-a-multiple-selections-from-a-list-of-choices)
+    - [Adding more detail to a field](#adding-more-detail-to-a-field)
+    - [Deleting a field](#deleting-a-field)
+* [Database](#database)
+    - [Add your first toaster](#add-your-first-toaster)
+    - [Searching for and editing a record](#searching-for-and-editing-a-record)
+    - [Inspecting records](#inspecting-records)
+    - [Exporting and importing](#exporting-and-importing)
 
 ### Schemas
 
@@ -226,7 +244,7 @@ path of the latter is `Name/Colour`, as forward slashes are used to separate
 levels). Now, when a record is added, the `Colour` field must have one child 
 chosen from the available options in the schema.
 
-#### Fields that take a multiple selections from a list of choices
+#### Fields that take multiple selections from a list of choices
 
 In some cases it can be desirable to allow multiple selection from a list of
 choices. For fields of this type, we set the `inquire` attribute to the value
@@ -460,7 +478,7 @@ Name required=True type=str
 
 ```
 
-### Database and Records
+### Database
 
 Once a schema is defined, records can be created using the schema and stored 
 in a text-based database (also a json file). The main `taxonopy` CLI 
@@ -471,8 +489,8 @@ the available options, type:
 > taxonopy db -h
 ```
 
-Lets add some records based on the schema created in the tutorial above for
-toasters. If you didn't create the schema, you can copy a version from the
+Lets add some records based on the schema created in the tutorial above. If 
+you didn't create the schema, you can copy a version from the 
 `examples/toasters` directory to an empty folder, like so:
 
 ```
@@ -481,24 +499,24 @@ toasters. If you didn't create the schema, you can copy a version from the
 > cd temp
 ```
 
-If you've already got the schema, then just ensure that your command line
-working directory is in the same folder. Also, if you have not yet done so,
-remember to activate the conda environment:
+If you've already got the schema, then just ensure that your shell's working 
+directory is in the same folder. Also, if you have not yet done so, remember 
+to activate the conda environment:
 
 ```
 > conda activate _taxonopy
 (_taxonopy) >
 ```
 
-#### Add your First Toaster
+#### Add your first toaster
 
 We create a new taxonopy database by adding our first record. For this task we 
 use taxonopy's `db new` subcommand. An existing schema is expected; by default 
 it's assumed to be called `schema.json` and reside in the current directory. 
 This can be changed with the `--schema` argument if desired. A new database 
-will be created, if it doesn't already exist, called, by default, `db.json`, 
-again placed in the current directory. To change this use the `--db` argument. 
-Working in our existing temporary directory we can simply type:
+will be created, if it doesn't already exist, called, by default, `db.json`. 
+To change this use the `--db` argument. Working in our temporary directory,
+we simply type:
 
 ```
 > taxonopy db new
@@ -506,9 +524,9 @@ Working in our existing temporary directory we can simply type:
 
 ```
 
-At this point, we are presented with the fields in our schema to be completed
-for our new record. As the current field is required, some text must be
-entered to move onto the next field. Let's add a name:
+At this point, we are presented with the fields in our schema to be completed 
+for our new record. As the current field is marked as required, some text must 
+be entered to move onto the next field. Let's add a name:
 
 ```
 [?] Name [str] (required): BEKO Cosmopolis TAM8402B
@@ -525,7 +543,7 @@ It accepted the name, now we must add the toaster's capacity:
 ```
 
 The next field is for the manufacturing date. This field can only accept 
-data that is valid inpur to the `datetime.date.fromisoformat` function. Let's
+data that is valid input to the `datetime.date.fromisoformat` function. Let's
 try adding an incorrect format:
 
 ```
@@ -546,8 +564,8 @@ OK, let's try the correct format:
 
 ```
 
-The next field is a required list type. So, we must select one option. To move
-between options use the arrow keys and to select an option press enter. Our
+The next field is a list type, thus, we must select one option. To move 
+between options use the arrow keys and to select an option press enter. Our 
 toaster is blue:
 
 ```
@@ -629,7 +647,7 @@ Mode                 LastWriteTime         Length Name
 
 ```
 
-#### Searching for and Editing a Record
+#### Searching for and editing a record
 
 It might be that something is wrong with one of the records entered into your
 database. For instance, the browning control on the BEKO Cosmopolis TAM8402B
@@ -640,19 +658,19 @@ For commands like `update`, where we want to select certain records, we
 must enter some search parameters. These are provided by the positional `path`
 argument and the optional `--value` and `--exact` arguments.
 
-The `path` argument refers to the field that we would like to match against
+The `path` argument refers to the field that we would like to match against 
 and the `--value` argument refers to the values that the field can take. 
-`--value` is optional and if it's not given, the command will return any
-records containing that field - if we used the root path "Name", in our example,
-with no `--value` argument, the command would return all records in the
-database. The `--exact` argument is given if the match to the given value must
-be exact. Otherwise all partial matches will be returned.
+`--value` is optional and if it's not given, the command will return any 
+records containing that field - if we used the root path "Name", in our 
+example, with no `--value` argument, the command would return all records in 
+the database. The `--exact` argument is used to return only exact matches to 
+the given value. If not given, any partial matches will also be returned.
 
-Finally, the `--field` argument let's us specify that we only want to edit
-one field in the returned records. This can be useful for precise edits or
-if a new field is added and all records need to be updated, for instance. 
-The `--field` argument takes the full path to the field, in the schema. Let's
-use all the options to fix our record:
+Finally, the `--field` argument let's us edit just one field in the returned 
+records. This can be useful for precise edits or if a new field is added and 
+all records need to be updated, for instance. The `--field` argument takes the 
+full path to the field, in the schema. Let's use all the options to fix our 
+record:
 
 ```
 > taxonopy db update Name --value "BEKO Cosmopolis TAM8402B" --exact --field "Name/Features/Browning Control"
@@ -717,11 +735,11 @@ Mode                 LastWriteTime         Length Name
 
 ```
 
-#### Inspecting Records
+#### Inspecting records
 
-It's useful at this point to have more records in our toaster database. Feel 
-free to add more yourself, but if you want a shortcut a database file 
-populated with 8 records is available in the 
+At this point in the tutorial, it's useful to have more records in our toaster 
+database. Feel free to add more yourself, but if you want a shortcut then a
+database file populated with 8 records is available in the 
 `/path/to/taxonopy/examples/toasters` directory called `db.json`.  The 
 taxonopy CLI current offers 3 commands for inspecting the records in the 
 database: `count`, `show` and `list`.
@@ -772,9 +790,8 @@ Name type=str value=Griffin Smart Connected Toaster required=True
 
 ```
 
-The `list` command filters the output of all records in the database. It it's 
-most basic usage it will display the value of the root field for all the 
-records:
+The `list` command filters the output of all records in the database. It's 
+most basic usage will display the value of the root field for all the records:
 
 ```
 > taxonopy db list
@@ -833,7 +850,7 @@ Name: TEFAL Tefal Smartn Light TT640840 |                                | Brown
 
 ```
 
-#### Exporting and Importing the Database
+#### Exporting and importing
 
 It can be useful to view the entire database using a spreadsheet. For this
 purpose, taxonopy can flatten the field hierarchy and export the resulting
@@ -857,8 +874,8 @@ Mode                 LastWriteTime         Length Name
 ```
 
 As can be seen, a new Excel file called "toasters.xlsx" has been created. 
-Within the Excel file, for fields below the second level, the headers of the 
-Excel file are separated with a colon to show the relationships, i.e. for the 
+Within the Excel file, the headers are separated with a colon to show 
+relationships for fields below the second level, i.e. for the 
 "Name/Features/Browning Control" field, the header shows "Features:Browning 
 Control".
 
