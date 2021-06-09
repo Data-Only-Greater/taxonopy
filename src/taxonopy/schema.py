@@ -1,6 +1,7 @@
 
 import os
 import json
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -258,6 +259,54 @@ class SCHTree(Tree):
         super().add_node(name, parent, **data)
 
 
+class RecordBuilderBase(ABC):
+
+    def __init__(self, schema):
+        
+        self._schema = schema
+        self._iters = None
+    
+    @abstractmethod
+    def build(self, existing=None):
+        return
+    
+    def _build(self, record, existing=None):
+        
+        while True:
+            try:
+                self._next(record, existing)
+            except StopIteration:
+                break
+        
+        self._iters = None
+        
+        return record
+    
+    def _next(self, record, existing=None):
+        
+        try:
+            top_iter = self._iters[-1]
+        except IndexError:
+            raise StopIteration
+        
+        while True:
+            
+            try:
+                node = next(top_iter)
+                break
+            except StopIteration:
+                self._iters.pop()
+                if len(self._iters) == 0:
+                    raise StopIteration
+                top_iter = self._iters[-1]
+        
+        self._build_node(record, node, existing)
+    
+    @abstractmethod
+    def _build_node(record, node, existing=None):
+        return
+
+
 def get_node_path(node):
     return node.separator.join([""] + [str(x.name) for x in node.path])
 
@@ -274,6 +323,32 @@ def get_node_attr(node, blacklist=None):
                 lambda item: not item[0].startswith("_") and
                              item[0] not in blacklist,
                     sorted(node.__dict__.items(), key=lambda item: item[0]))}
+
+
+def record_has_node(record, node_path):
+    
+    try:
+        record.find_by_path(node_path)
+        result = True
+    except ChildResolverError:
+        result = False
+    
+    return result
+
+
+def copy_node_to_record(record, node, **node_attr):
+    
+    parent_path = get_parent_path(node)
+    
+    if not parent_path:
+        record.add_node(node.name, **node_attr)
+        return
+    
+    try:
+        node_path = get_node_path(node)
+        record.find_by_path(node_path)
+    except ChildResolverError:
+        record.add_node(node.name, parent_path, **node_attr)
 
 
 def _get_data(filepath_or_data):

@@ -6,20 +6,38 @@ import argparse
 import datetime
 
 import inquirer
-from inquirer.render.console import ConsoleRender
+from blessed import Terminal
 from anytree.resolver import ChildResolverError
+from inquirer.themes import Theme
+from inquirer.render.console import ConsoleRender
 
 from .arghandler import ArgumentHandler, parse_vars, subcmd
-from .record import CLITheme
+
+
+### CLI FORMATTING
+
+term = Terminal()
+
+class CLITheme(Theme):
+    def __init__(self):
+        super(CLITheme, self).__init__()
+        self.Question.mark_color = term.yellow
+        self.Question.brackets_color = term.bright_green
+        self.Question.default_color = term.yellow
+        self.Checkbox.selection_color = term.bright_green
+        self.Checkbox.selection_icon = ">"
+        self.Checkbox.selected_icon = "X"
+        self.Checkbox.selected_color = term.yellow + term.bold
+        self.Checkbox.unselected_color = term.normal
+        self.Checkbox.unselected_icon = "o"
+        self.List.selection_color = term.bright_green
+        self.List.selection_cursor = ">"
+        self.List.unselected_color = term.normal
+
+### MAIN CLI
 
 subcommands = {}
 subcommands_help = {}
-dbcommands = {}
-dbcommands_help = {}
-schemacommands = {}
-schemacommands_help = {}
-
-### MAIN
 
 def main():
     '''Command line interface for taxonopy.
@@ -70,7 +88,10 @@ def _print_version():
 
 
 
-### DATABASE
+### DATABASE CLI
+
+dbcommands = {}
+dbcommands_help = {}
 
 @subcmd('db',
         subcommands,
@@ -169,7 +190,7 @@ def _db_count(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from .db import show_count
+    from ..db import show_count
     
     try:
         show_count(args.path, args.value, args.exact, args.db)
@@ -199,7 +220,7 @@ def _db_show(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from .db import show_records
+    from ..db import show_records
     
     try:
         show_records(args.path, args.value, args.exact, args.db)
@@ -223,7 +244,7 @@ def _db_list(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from .db import show_nodes
+    from ..db import show_nodes
     
     try:
         show_nodes(args.path, args.db)
@@ -251,7 +272,7 @@ def _db_dump(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from .db import dump_xl
+    from ..utils import dump_xl
     
     try:
         dump_xl(args.path, args.schema, args.db)
@@ -282,10 +303,13 @@ def _db_load(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from .db import load_xl
+    from ..utils import load_xl
     load_xl(args.db_path, args.xl_path, args.schema, args.append)
 
-### SCHEMA
+### SCHEMA CLI
+
+schemacommands = {}
+schemacommands_help = {}
 
 @subcmd('schema',
         subcommands,
@@ -313,7 +337,7 @@ def _schema_show(parser,context,topargs):
     args = parser.parse_args(topargs)
     if not os.path.isfile(args.schema): return
     
-    from .tree import SCHTree
+    from ..schema import SCHTree
     schema = SCHTree.from_json(args.schema)
     print(schema)
 
@@ -362,7 +386,7 @@ def _schema_new(parser,context,topargs):
         
         if choice == "no": return
         
-    from .tree import SCHTree
+    from ..schema import SCHTree
     
     node_attr = parse_vars(args.attributes)
     if "type" not in node_attr: node_attr["type"] = "str"
@@ -419,7 +443,7 @@ def _schema_add(parser,context,topargs):
     
     node_attr = parse_vars(args.attributes)
     
-    from .tree import SCHTree
+    from ..schema import SCHTree
     
     schema = SCHTree.from_json(args.schema)
     total_path = f"{args.parent}/{args.name}"
@@ -466,7 +490,7 @@ def _schema_delete(parser,context,topargs):
     else:
         out = args.schema
     
-    from .tree import SCHTree
+    from ..schema import SCHTree
     
     schema = SCHTree.from_json(args.schema)
     schema.delete_node(args.path)

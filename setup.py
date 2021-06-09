@@ -33,6 +33,6 @@ setuptools.setup(
     extras_require={
         'test': ['pytest', 'pytest-console-scripts']},
     entry_points = {
-        'console_scripts': ['taxonopy=taxonopy.cli:main'],
+        'console_scripts': ['taxonopy=taxonopy._cli:main'],
     }
 )
