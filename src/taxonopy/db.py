@@ -143,10 +143,13 @@ def _make_query(path, value=None, exact=False):
     
     query = Query()
     path_resolution = path.strip('/').split('/')
-    result = query['L0'].exists()
     
-    for i, path in enumerate(path_resolution):
-        result &= query[f'L{i}'].any(query.name == path)
+    if len(path_resolution) == 1:
+        result = query['L0'].any(query.name == path_resolution[0])
+    else:
+        result = query[f'L{len(path_resolution) - 1}'].any(
+                            (query.name == path_resolution[-1]) &
+                            (query.parent == '/'.join(path_resolution[:-1])))
     
     if value is not None:
         
