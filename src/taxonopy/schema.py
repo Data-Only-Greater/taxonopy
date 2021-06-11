@@ -267,14 +267,14 @@ class RecordBuilderBase(ABC):
         self._iters = None
     
     @abstractmethod
-    def build(self, existing=None):
+    def build(self, existing=None, **kwargs):
         return
     
-    def _build(self, record, existing=None):
+    def _build(self, record, existing=None, **kwargs):
         
         while True:
             try:
-                self._next(record, existing)
+                self._next(record, existing, **kwargs)
             except StopIteration:
                 break
         
@@ -282,7 +282,7 @@ class RecordBuilderBase(ABC):
         
         return record
     
-    def _next(self, record, existing=None):
+    def _next(self, record, existing=None, **kwargs):
         
         try:
             top_iter = self._iters[-1]
@@ -300,10 +300,10 @@ class RecordBuilderBase(ABC):
                     raise StopIteration
                 top_iter = self._iters[-1]
         
-        self._build_node(record, node, existing)
+        self._build_node(record, node, existing, **kwargs)
     
     @abstractmethod
-    def _build_node(record, node, existing=None):
+    def _build_node(record, node, existing=None, **kwargs):
         return
 
 

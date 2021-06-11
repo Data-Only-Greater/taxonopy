@@ -300,11 +300,14 @@ def _db_load(parser,context,topargs):
                         help=('append to an existing database (otherwise '
                               'overwritten)'),
                         action="store_true")
+    parser.add_argument('--strict',
+                        help=('values must conform to the schema'),
+                        action="store_true")
     
     args = parser.parse_args(topargs)
     
     from ..utils import load_xl
-    load_xl(args.db_path, args.xl_path, args.schema, args.append)
+    load_xl(args.db_path, args.xl_path, args.schema, args.append, args.strict)
 
 ### SCHEMA CLI
 

@@ -27,22 +27,26 @@ class FlatRecordBuilder(RecordBuilderBase):
         self._title_sep = title_sep
         self._value_sep = value_sep
     
-    def build(self, existing):
+    def build(self, existing, strict=False):
         
         self._iters = [iter([self._schema.root_node])]
         record = SCHTree()
-        record = self._build(record, existing)
+        record = self._build(record, existing, strict=strict)
         
         return record
     
-    def _build_node(self, record, node, existing):
+    def _build_node(self, record, node, existing, strict=False):
         
         node_attr = get_node_attr(node, blacklist=["name"])
         
         # See if node requires data first
         if "type" in node_attr:
             
-            self._select_from_type(record, node, node_attr, existing)
+            self._select_from_type(record,
+                                   node,
+                                   node_attr,
+                                   existing,
+                                   strict=strict)
             
             # If a typed node has no value and no children then we're done
             if "value" not in node_attr or not node.children:
@@ -50,12 +54,20 @@ class FlatRecordBuilder(RecordBuilderBase):
         
         # Now see if the node is a header for list selection
         if "inquire" in node_attr and node_attr["inquire"] == "list":
-            self._select_from_list(record, node, node_attr, existing)
+            self._select_from_list(record,
+                                   node,
+                                   node_attr,
+                                   existing,
+                                   strict=strict)
             return
         
         # Now see if the node is a header for checkbox selection
         if "inquire" in node_attr and node_attr["inquire"] == "checkbox":
-            self._select_from_check(record, node, node_attr, existing)
+            self._select_from_check(record,
+                                    node,
+                                    node_attr,
+                                    existing,
+                                    strict=strict)
             return
         
         copy_node_to_record(record, node, **node_attr)
@@ -67,11 +79,16 @@ class FlatRecordBuilder(RecordBuilderBase):
         
         self._iters.append(new_iter)
     
-    def _select_from_type(self, record, node, node_attr, existing):
-        if self._set_node_type(node, node_attr, existing):
+    def _select_from_type(self, record,
+                                node,
+                                node_attr,
+                                existing,
+                                strict=False):
+        
+        if self._set_node_type(node, node_attr, existing, strict=strict):
             copy_node_to_record(record, node, **node_attr)
     
-    def _set_node_type(self, node, node_attr, existing):
+    def _set_node_type(self, node, node_attr, existing, strict=False):
         
         required = False
         node_title = self._get_node_title(node)
@@ -92,12 +109,22 @@ class FlatRecordBuilder(RecordBuilderBase):
             exec(import_str)
         
         val_type = eval(node_attr["type"])
-        val_type(existing_value)
+        
+        try:
+            val_type(existing_value)
+        except ValueError as e:
+            if strict: raise ValueError(e)
+            return False
+        
         node_attr["value"] = existing_value
         
         return True
     
-    def _select_from_list(self, record, node, node_attr, existing):
+    def _select_from_list(self, record,
+                                node,
+                                node_attr,
+                                existing,
+                                strict=False):
         
         required = False
         node_path = get_node_path(node)
@@ -119,7 +146,13 @@ class FlatRecordBuilder(RecordBuilderBase):
         elif required and existing_value not in choices:
             err_msg = f"Entry for required node {node.name} is not valid"
             raise ValueError(err_msg)
-        elif (existing_value is None or existing_value not in choices):
+        elif existing_value is None:
+            return
+        elif existing_value not in choices and strict:
+            err_msg = (f"Value '{existing_value}' is not a valid choice for "
+                       f"node {node.name}")
+            raise ValueError(err_msg)
+        elif existing_value not in choices:
             return
         
         # Add the node to the record if required
@@ -147,7 +180,11 @@ class FlatRecordBuilder(RecordBuilderBase):
         
         self._iters.append(new_iter)
     
-    def _select_from_check(self, record, node, node_attr, existing):
+    def _select_from_check(self, record,
+                                 node,
+                                 node_attr,
+                                 existing,
+                                 strict=False):
         
         required = False
         node_path = get_node_path(node)
@@ -171,7 +208,22 @@ class FlatRecordBuilder(RecordBuilderBase):
         valid_values = list(set(choices) & existing_values)
         
         if required and not valid_values:
+            
             err_msg = f"No valid entries found for required node {node.name}"
+            raise ValueError(err_msg)
+        
+        elif strict and len(valid_values) != len(existing_values):
+            
+            bad_values = existing_values.difference(set(valid_values))
+            bad_values_str = ", ".join(bad_values)
+            
+            if len(bad_values) == 1:
+                noun = "choice"
+            else:
+                noun = "choices"
+            
+            err_msg = (f"Invalid {noun} '{bad_values_str}' given for node "
+                       f"{node.name}")
             raise ValueError(err_msg)
         
         if not valid_values: return
@@ -296,7 +348,11 @@ def dump_xl(out,
         wb.save(out)
 
 
-def load_xl(db_path, xl_path, schema_path="schema.json", append=False):
+def load_xl(db_path,
+            xl_path,
+            schema_path="schema.json",
+            append=False,
+            strict=False):
     
     if not append and os.path.exists(db_path):
         os.remove(db_path)
@@ -312,7 +368,7 @@ def load_xl(db_path, xl_path, schema_path="schema.json", append=False):
     
     for values in ws.iter_rows(min_row=2, values_only=True):
         flat = {t: v for t, v in zip(titles, values)}
-        record = builder.build(flat)
+        record = builder.build(flat, strict=strict)
         db.add(record)
 
 
