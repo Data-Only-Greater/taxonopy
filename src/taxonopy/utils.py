@@ -372,6 +372,25 @@ def load_xl(db_path,
         db.add(record)
 
 
+def choice_count(path,
+                 db_path="db.json",
+                 schema_path="schema.json"):
+    
+    schema = SCHTree.from_json(schema_path)
+    db = DataBase(db_path, check_existing=True)
+    
+    node = schema.find_by_path(path)
+    
+    if not hasattr(node, "inquire"): return
+    if (hasattr(node, "inquire") and
+        getattr(node, "inquire") not in ["list", "checkbox"]): return
+    
+    count = {child.name: db.count(get_node_path(child), exact=True)
+                                                 for child in node.children}
+    
+    return count
+
+
 def _get_tree_titles(tree, sep=":"):
     root_node = tree.root_node
     titles = [root_node.name]

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import csv
 import sys
 import argparse
 import datetime
@@ -196,6 +197,53 @@ def _db_count(parser,context,topargs):
         show_count(args.path, args.value, args.exact, args.db)
     except IOError:
         print("Database not found")
+
+
+@subcmd('choices',
+        dbcommands,
+        dbcommands_help,
+        help="show count for fields with choices")
+def _db_choices(parser,context,topargs):
+    
+    parser.add_argument('path',
+                        help='path of field to count',
+                        action='store')
+    parser.add_argument('--csv',
+                        help='save results to csv file at given path',
+                        action="store")
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from ..utils import choice_count
+    
+    try:
+        count = choice_count(args.path, args.db, args.schema)
+    except IOError:
+        print("Database not found")
+    
+    msg = (f"{k}: {v}" for k, v in count.items())
+    print('\n'.join(msg))
+    
+    if args.csv is None: return
+    
+    with open(args.csv, 'w', newline='') as csvfile:
+        
+        writer = csv.writer(csvfile,
+                            delimiter=',',
+                            quotechar='|',
+                            quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["Field", "Count"])
+        
+        for k, v in count.items():
+            writer.writerow([k, v])
 
 
 @subcmd('show',
