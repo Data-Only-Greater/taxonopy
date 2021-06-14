@@ -169,6 +169,41 @@ def _db_update(parser,context,topargs):
         print("Database not found")
 
 
+@subcmd('equal',
+        dbcommands,
+        dbcommands_help,
+        help="test equality of two database files")
+def _db_equal(parser,context,topargs):
+    
+    parser.add_argument('db_one',
+                        help='path to first database (json or Excel)',
+                        action="store")
+    parser.add_argument('db_two',
+                        help='path to second database (json or Excel)',
+                        action="store")
+    parser.add_argument('--schema',
+                        help=('path to the schema (default is ./schema.json). '
+                              'Only required if loading from Excel.'),
+                        action="store",
+                        default="schema.json")
+    parser.add_argument('--strict',
+                        help=('values must conform to the schema'),
+                        action="store_true")
+    
+    args = parser.parse_args(topargs)
+    
+    from ..utils import check_dbs_equal
+    
+    try:
+        check_dbs_equal(args.db_one,
+                        args.db_two,
+                        args.schema,
+                        args.strict,
+                        progress=True)
+    except IOError:
+        print("Database not found")
+
+
 @subcmd('count',
         dbcommands,
         dbcommands_help,

@@ -399,6 +399,60 @@ def choice_count(path,
     return count
 
 
+def check_dbs_equal(db_one_path,
+                    db_two_path,
+                    schema_path="schema.json",
+                    strict=False,
+                    progress=False):
+    
+    def load_db_dict(db_path):
+        
+        db_name, db_extension = os.path.splitext(db_path)
+        
+        if db_extension not in [".xlsx", ".xls"]:
+            with DataBase(db_path, check_existing=True) as db:
+                return db.all()
+        
+        with tempfile.TemporaryDirectory() as tmpdirname:
+        
+            db_tempname = os.path.basename(db_name) + ".json"
+            db_temppath = os.path.join(tmpdirname, db_tempname)
+            
+            load_xl(db_temppath,
+                    db_path,
+                    schema_path=schema_path,
+                    strict=strict,
+                    progress=progress)
+            
+            with DataBase(db_temppath, check_existing=True) as db:
+                return db.all()
+    
+    db_one_dict = load_db_dict(db_one_path)
+    db_two_dict = load_db_dict(db_two_path)
+    
+    db_one_name_dict = {tree.root_node.value: tree
+                                       for tree in db_one_dict.values()}
+    db_two_name_dict = {tree.root_node.value: tree
+                                       for tree in db_two_dict.values()}
+    
+    db_one_name_set = set(db_one_name_dict.keys())
+    db_two_name_set = set(db_two_name_dict.keys())
+    
+    matching = list(db_one_name_set & db_two_name_set)
+    missing = list(db_one_name_set ^ db_two_name_set)
+    
+    for name in matching:
+        if db_one_name_dict[name] == db_two_name_dict[name]: continue
+        missing.append(name)
+    
+    if not missing:
+        print("Databases are equal")
+        return
+    
+    missing_str = "\n".join(missing)
+    print(f"Differences detected in records:\n{missing_str}")
+
+
 def _get_tree_titles(tree, sep=":"):
     root_node = tree.root_node
     titles = [root_node.name]

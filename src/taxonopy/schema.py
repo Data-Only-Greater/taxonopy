@@ -6,7 +6,7 @@ from copy import deepcopy
 from collections import OrderedDict
 
 from anytree import LevelOrderGroupIter, Node, RenderTree
-from anytree.exporter import UniqueDotExporter
+from anytree.exporter import DictExporter, UniqueDotExporter
 from anytree.resolver import ChildResolverError, Resolver
 from anytree.search import findall
 
@@ -216,6 +216,21 @@ class Tree:
         
         for attr, value in kwargs.items():
             setattr(node, attr, value)
+    
+    def __eq__(self, other):
+        
+        # Can only be equal to another Tree or a Node
+        if not isinstance(other, (Tree, Node)): return False
+        if isinstance(other, Tree): other = other.root_node
+        
+        if self.root_node is None or other is None:
+            return self.root_node == other
+        
+        exporter = DictExporter()
+        this_dict = exporter.export(self.root_node)
+        other_dict = exporter.export(other)
+        
+        return this_dict == other_dict
     
     def __str__(self):
         """
