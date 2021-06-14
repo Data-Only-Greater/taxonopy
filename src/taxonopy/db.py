@@ -13,7 +13,9 @@ from .schema import SCHTree
 
 class DataBase:
     
-    def __init__(self, db_path="db.json", check_existing=False):
+    def __init__(self, db_path="db.json",
+                       check_existing=False,
+                       access_mode='r+'):
         
         if check_existing and not os.path.isfile(db_path):
             raise IOError(f"Path {db_path} does not contain a valid database")
@@ -21,7 +23,18 @@ class DataBase:
         self._db = TinyDB(db_path,
                           sort_keys=True,
                           indent=4,
-                          separators=(',', ': '))
+                          separators=(',', ': '),
+                          access_mode=access_mode)
+    
+    def __enter__(self):
+        self._db.__enter__()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._db.__exit__(exc_type, exc_val, exc_tb)
+    
+    def close(self):
+        self._db.close()
     
     def add(self, record):
         self._db.insert(record.to_dict())
