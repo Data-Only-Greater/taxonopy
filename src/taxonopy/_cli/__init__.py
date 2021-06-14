@@ -355,7 +355,12 @@ def _db_load(parser,context,topargs):
     args = parser.parse_args(topargs)
     
     from ..utils import load_xl
-    load_xl(args.db_path, args.xl_path, args.schema, args.append, args.strict)
+    load_xl(args.db_path,
+            args.xl_path,
+            args.schema,
+            args.append,
+            args.strict,
+            progress=True)
 
 ### SCHEMA CLI
 

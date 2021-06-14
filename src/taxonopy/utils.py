@@ -352,7 +352,8 @@ def load_xl(db_path,
             xl_path,
             schema_path="schema.json",
             append=False,
-            strict=False):
+            strict=False,
+            progress=False):
     
     if not append and os.path.exists(db_path):
         os.remove(db_path)
@@ -361,15 +362,19 @@ def load_xl(db_path,
     builder = FlatRecordBuilder(schema)
     
     wb = load_workbook(xl_path)
-    db = DataBase(db_path)
     
-    ws = wb['DataBase']
-    titles = [cell.value for cell in ws[1]]
+    with DataBase(db_path) as db:
     
-    for values in ws.iter_rows(min_row=2, values_only=True):
-        flat = {t: v for t, v in zip(titles, values)}
-        record = builder.build(flat, strict=strict)
-        db.add(record)
+        ws = wb['DataBase']
+        titles = [cell.value for cell in ws[1]]
+        
+        for values in ws.iter_rows(min_row=2, values_only=True):
+            flat = {t: v for t, v in zip(titles, values)}
+            record = builder.build(flat, strict=strict)
+            db.add(record)
+            if progress: print(".", end="", flush=True)
+        
+        if progress: print("\n", end="", flush=True)
 
 
 def choice_count(path,
