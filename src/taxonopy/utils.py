@@ -70,7 +70,7 @@ class FlatRecordBuilder(RecordBuilderBase):
                                     strict=strict)
             return
         
-        copy_node_to_record(node, record, **node_attr)
+        copy_node_to_record(record, node, **node_attr)
         
         if len(node.children) < 1: return
         
@@ -86,7 +86,7 @@ class FlatRecordBuilder(RecordBuilderBase):
                                 strict=False):
         
         if self._set_node_type(node, node_attr, existing, strict=strict):
-            copy_node_to_record(node, record, **node_attr)
+            copy_node_to_record(record, node, **node_attr)
     
     def _set_node_type(self, node, node_attr, existing, strict=False):
         
@@ -156,7 +156,7 @@ class FlatRecordBuilder(RecordBuilderBase):
             return
         
         # Add the node to the record if required
-        copy_node_to_record(node, record, **node_attr)
+        copy_node_to_record(record, node, **node_attr)
         
         choice_path = f"{node_path}/{existing_value}"
         chosen_node = self._schema.find_by_path(choice_path)
@@ -168,7 +168,7 @@ class FlatRecordBuilder(RecordBuilderBase):
                                    chosen_node_attr,
                                    existing)
         
-        copy_node_to_record(chosen_node, record, **chosen_node_attr)
+        copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_node.children) < 1: return
         
@@ -233,7 +233,7 @@ class FlatRecordBuilder(RecordBuilderBase):
         valid_values.sort(key=sorter.get)
         
         # Add the parent node if it's not already in the tree
-        copy_node_to_record(node, record, **node_attr)
+        copy_node_to_record(record, node, **node_attr)
         
         chosen_nodes = []
         
@@ -253,7 +253,7 @@ class FlatRecordBuilder(RecordBuilderBase):
             if len(chosen_node.children) > 0:
                 chosen_nodes.append(chosen_node)
             
-            copy_node_to_record(chosen_node, record, **chosen_node_attr)
+            copy_node_to_record(record, chosen_node, **chosen_node_attr)
         
         if len(chosen_nodes) < 1: return
         
