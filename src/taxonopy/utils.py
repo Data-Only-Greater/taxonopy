@@ -344,6 +344,10 @@ def dump_xl(out,
         img = Image(img_path)
         img.anchor = 'A1'
         
+        scaling = 1200 / img.width
+        img.width = 1200
+        img.height *= scaling
+        
         ws1.add_image(img)
         wb.save(out)
 
