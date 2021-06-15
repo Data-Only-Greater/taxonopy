@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from collections import OrderedDict
 
-from anytree import LevelOrderGroupIter, Node, RenderTree
-from anytree.exporter import DictExporter, UniqueDotExporter
+from anytree import LevelOrderGroupIter, Node, PreOrderIter, RenderTree
+from anytree.exporter import UniqueDotExporter
 from anytree.resolver import ChildResolverError, Resolver
 from anytree.search import findall
 
@@ -217,20 +217,68 @@ class Tree:
         for attr, value in kwargs.items():
             setattr(node, attr, value)
     
+    def diff(self, other):
+        
+        # Can only be compared with another Tree
+        if not isinstance(other, Tree):
+            raise ValueError("Comparison only valid to another Tree object")
+        
+        diff = {}
+        
+        deleted = "deleted"
+        added = "added"
+        changed = "changed"
+        
+        # Check for added and deleted nodes
+        flat_nodes = [node for node in PreOrderIter(self.root_node)]
+        node_paths = [get_node_path(node) for node in flat_nodes]
+        other_node_paths = [get_node_path(node)
+                                    for node in PreOrderIter(other.root_node)]
+        
+        for path in (set(node_paths) - set(other_node_paths)):
+            diff[path] = deleted
+        
+        for path in (set(other_node_paths) - set(node_paths)):
+            diff[path] = added
+        
+        # Check for changed nodes
+        for path in (set(node_paths) & set(other_node_paths)):
+            
+            this_node = self.find_by_path(path)
+            other_node = other.find_by_path(path)
+            
+            matching = True
+            
+            for attr in self.extra_attrs:
+                
+                if ((hasattr(this_node, attr) and
+                     not hasattr(other_node, attr)) or
+                    (not hasattr(this_node, attr) and
+                     hasattr(other_node, attr))):
+                    
+                    matching = False
+                    break
+                
+                elif (not hasattr(this_node, attr) or
+                      not hasattr(other_node, attr)):
+                    
+                    continue
+                
+                this_attr = getattr(this_node, attr)
+                other_attr = getattr(other_node, attr)
+                
+                if this_attr == other_attr: continue
+                matching = False
+                break
+            
+            if matching: continue
+            diff[path] = changed
+        
+        return diff
+    
     def __eq__(self, other):
-        
-        # Can only be equal to another Tree or a Node
-        if not isinstance(other, (Tree, Node)): return False
-        if isinstance(other, Tree): other = other.root_node
-        
-        if self.root_node is None or other is None:
-            return self.root_node == other
-        
-        exporter = DictExporter()
-        this_dict = exporter.export(self.root_node)
-        other_dict = exporter.export(other)
-        
-        return this_dict == other_dict
+        if not isinstance(other, Tree): return False
+        return not self.diff(other)
     
     def __str__(self):
         """
