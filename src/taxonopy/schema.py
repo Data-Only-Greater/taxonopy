@@ -288,8 +288,10 @@ class Tree:
         -------
         msg: a str containing the output taxonomy visualization
         """
-        msg = """"""
+        
+        msg = ''
         root = self.root_node
+        
         for pre, _, node in RenderTree(root):
             
             msg += f"{pre}{node.name}"
@@ -399,7 +401,7 @@ def record_has_node(record, node_path):
     return result
 
 
-def copy_node_to_record(record, node, **node_attr):
+def copy_node_to_record(node, record, **node_attr):
     
     parent_path = get_parent_path(node)
     
