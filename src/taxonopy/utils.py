@@ -333,14 +333,11 @@ def dump_xl(out,
     
     ws1 = wb.create_sheet("Schema")
     
-    dot = schema.to_dot()
-    gv = graphviz.Source(dot)
-    gv.format = img_format
-    
     with tempfile.TemporaryDirectory() as tmpdir:
         
-        img_name = os.path.join(tmpdir, "temp")
-        img_path = gv.render(img_name)
+        img_path = os.path.join(tmpdir, "temp") + "." + img_format
+        render_tree(schema, img_path)
+        
         img = Image(img_path)
         img.anchor = 'A1'
         
@@ -379,6 +376,17 @@ def load_xl(db_path,
             if progress: print(".", end="", flush=True)
         
         if progress: print("\n", end="", flush=True)
+
+
+def render_tree(tree, path):
+    
+    path, ext = os.path.splitext(path)
+    img_format = ext[1:]
+    
+    dot = tree.to_dot()
+    gv = graphviz.Source(dot)
+    gv.format = img_format
+    gv.render(path)
 
 
 def choice_count(path,
