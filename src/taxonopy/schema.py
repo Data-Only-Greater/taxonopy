@@ -160,6 +160,27 @@ class Tree:
         with open(file_name, "w") as f:
             f.write(json_text)
     
+    def to_tree(self, path=None):
+        
+        # Copy the entire tree
+        if path is None:
+            new_root = copy_node(self.root_node, self.extra_attrs)
+            return type(self)(new_root, self.extra_attrs)
+        
+        node = self.find_by_path(path)
+        new_root = copy_node(self.root_node, self.extra_attrs, orphan=True)
+        last_node = new_root
+        
+        for top_node in node.ancestors[1:]:
+            next_node = copy_node(top_node, self.extra_attrs, orphan=True)
+            last_node.children = [next_node]
+            last_node = next_node
+        
+        final_node = copy_node(node, self.extra_attrs)
+        last_node.children = [final_node]
+    
+        return type(self)(new_root, self.extra_attrs)
+    
     def find_by_name(self, name, parent_path=None):
         
         if parent_path is None:
@@ -368,6 +389,16 @@ class RecordBuilderBase(ABC):
 
 def get_node_path(node):
     return node.separator.join([""] + [str(x.name) for x in node.path])
+
+
+def copy_node(node, extra_attrs, orphan=False):
+    
+    children = None
+    kwargs = {attr: getattr(node, attr)
+                          for attr in extra_attrs if hasattr(node, attr)}
+    if not orphan: children = deepcopy(node.children)
+    
+    return Node(node.name, children=children, **kwargs)
 
 
 def render_node(root, extra_attrs=None):
