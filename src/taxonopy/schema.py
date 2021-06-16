@@ -16,23 +16,11 @@ COLOR_SCHEME = ["aliceblue", "antiquewhite", "azure", "coral", "palegreen"]
 
 class Tree:
     
-    """
-    This class is a wrapper on a Tree class from the anytree library to hold
-    different taxonomies read from a JSON representation
-    
-    Attributes
-    ----------
-    prefix: str with the prefix character for each level in the JSON
-            representation
-    nodes: dict with node name str as key and anytree Node instance as value
-           which contains all the nodes of the taxonomy tree
-    root_key: str identifying the root node for fast retrieval
-    """
-    
-    def __init__(self, level_prefix="L"):
+    def __init__(self, root_node=None, extra_attrs=None, level_prefix="L"):
+        self.root_node = root_node
+        self.extra_attrs = (set([]) if extra_attrs is None
+                                                        else set(extra_attrs))
         self.prefix = level_prefix
-        self.root_node = None
-        self.extra_attrs = set([])
     
     @classmethod
     def from_dict(cls, data, level_prefix="L"):
