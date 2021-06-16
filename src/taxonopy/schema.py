@@ -115,14 +115,20 @@ class Tree:
         
         return output_dict
     
-    def to_dot(self, file_name=None):
+    def to_dot(self, file_name=None, root_path=None, nodeattr_fn=None):
         
-        def nodeattr_fn(node):
+        def basic_nodeattr_fn(node):
             return (f'label="{node.name}" '
                      'style=filled '
                     f'color={COLOR_SCHEME[node.depth]}')
         
-        root = self.root_node
+        if nodeattr_fn is None: nodeattr_fn = basic_nodeattr_fn
+        
+        if root_path is None:
+            root = self.root_node
+        else:
+            root = self.find_by_path(root_path)
+            
         dot = UniqueDotExporter(
             root,
             nodeattrfunc=nodeattr_fn,
@@ -289,6 +295,27 @@ class SCHTree(Tree):
             if key in kwargs: data[key] = kwargs[key]
         
         super().add_node(name, parent, **data)
+    
+    def to_dot(self, file_name=None, root_path=None):
+        
+        def SCH_nodeattr_fn(node):
+            
+            if hasattr(node, "type"):
+                nodeattr = (f'label=<{node.name}'
+                             '<BR /><FONT POINT-SIZE="10">'
+                             f'{getattr(node, "type")}'
+                             '</FONT>> ')
+            else:
+                nodeattr = f'label="{node.name}" '
+            
+            nodeattr += ( 'style=filled '
+                         f'color={COLOR_SCHEME[node.depth]}')
+            
+            return nodeattr
+        
+        return super().to_dot(file_name=file_name,
+                              root_path=root_path,
+                              nodeattr_fn=SCH_nodeattr_fn)
 
 
 class RecordBuilderBase(ABC):
