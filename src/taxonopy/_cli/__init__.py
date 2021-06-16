@@ -433,6 +433,34 @@ def _schema_show(parser,context,topargs):
     print(schema)
 
 
+@subcmd('render',
+        schemacommands,
+        schemacommands_help,
+        help="render an image of the schema (or part of)")
+def _schema_render(parser,context,topargs):
+    
+    parser.add_argument('out',
+                        help='path to the resulting image file',
+                        action="store")
+    parser.add_argument('--path',
+                        help='path of field for partial output',
+                        action='store')
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    
+    args = parser.parse_args(topargs)
+    if not os.path.isfile(args.schema): return
+    
+    from ..schema import SCHTree
+    from ..utils import render_tree
+    
+    schema = SCHTree.from_json(args.schema)
+    if args.path is not None: schema = schema.to_tree(args.path)
+    render_tree(schema, args.out)
+
+
 @subcmd('new',
         schemacommands,
         schemacommands_help,

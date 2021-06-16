@@ -386,7 +386,7 @@ def render_tree(tree, path):
     dot = tree.to_dot()
     gv = graphviz.Source(dot)
     gv.format = img_format
-    gv.render(path)
+    gv.render(path, cleanup=True)
 
 
 def choice_count(path,
