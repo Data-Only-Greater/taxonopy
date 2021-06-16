@@ -269,26 +269,7 @@ class Tree:
         return not self.diff(other)
     
     def __str__(self):
-        """
-        ASCII representation of the tree similarly to a directory structure
-        
-        Returns
-        -------
-        msg: a str containing the output taxonomy visualization
-        """
-        msg = """"""
-        root = self.root_node
-        for pre, _, node in RenderTree(root):
-            
-            msg += f"{pre}{node.name}"
-            
-            for attr in self.extra_attrs:
-                if hasattr(node, attr):
-                    msg += f" {attr}={getattr(node, attr)}"
-            
-            msg += "\n"
-            
-        return msg
+        return render_node(self.root_node, extra_attrs=self.extra_attrs)
 
 
 class SCHTree(Tree):
@@ -360,6 +341,24 @@ class RecordBuilderBase(ABC):
 
 def get_node_path(node):
     return node.separator.join([""] + [str(x.name) for x in node.path])
+
+
+def render_node(root, extra_attrs=None):
+    
+    if extra_attrs is None: extra_attrs = []
+    msg = ''
+    
+    for pre, _, node in RenderTree(root):
+        
+        msg += f"{pre}{node.name}"
+        
+        for attr in extra_attrs:
+            if hasattr(node, attr):
+                msg += f" {attr}={getattr(node, attr)}"
+        
+        msg += "\n"
+            
+    return msg
 
 
 def get_parent_path(node):
