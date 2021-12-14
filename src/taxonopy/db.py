@@ -6,9 +6,29 @@ from collections import OrderedDict
 from collections.abc import Iterable
 
 from anytree.resolver import ChildResolverError
+from natsort import natsorted
 from tinydb import table, TinyDB, Query
+from tinydb.middlewares import Middleware
+from tinydb.storages import JSONStorage
 
 from .schema import SCHTree
+
+
+class WriteSortMiddleware(Middleware):
+    
+    def __init__(self, storage_cls):
+        super(WriteSortMiddleware, self).__init__(storage_cls)
+    
+    def read(self):
+        data = self.storage.read()
+        return data
+    
+    def write(self, data):
+        data = _order_dict(data)
+        self.storage.write(data)
+    
+    def close(self):
+        self.storage.close()
 
 
 class DataBase:
@@ -21,10 +41,10 @@ class DataBase:
             raise IOError(f"Path {db_path} does not contain a valid database")
         
         self._db = TinyDB(db_path,
-                          sort_keys=True,
                           indent=4,
                           separators=(',', ': '),
-                          access_mode=access_mode)
+                          access_mode=access_mode,
+                          storage=WriteSortMiddleware(JSONStorage))
     
     def __enter__(self):
         self._db.__enter__()
@@ -158,6 +178,11 @@ def show_nodes(paths=None, db_path="db.json"):
 def show_records(path, value=None, exact=False, db_path="db.json"):
     db = DataBase(db_path, check_existing=True)
     for record in db.get(path, value, exact).values(): print(record)
+
+
+def _order_dict(dictionary):
+    return {k: _order_dict(v) if isinstance(v, dict) else v
+            for k, v in natsorted(dictionary.items())}
 
 
 def _make_query(path, value=None, exact=False):
