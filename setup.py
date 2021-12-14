@@ -26,6 +26,7 @@ setuptools.setup(
         'graphviz',
         'inquirer',
         'importlib_metadata; python_version < "3.8.0"',
+        'natsort',
         'openpyxl',
         'Pillow',
         'tinydb'
