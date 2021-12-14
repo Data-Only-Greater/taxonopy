@@ -75,6 +75,10 @@ class DataBase:
         
         return result
     
+    def flush(self):
+        null = lambda x: x
+        self._db._update_table(null)
+    
     def get(self, node_path, value=None, exact=False):
         query = _make_query(node_path, value, exact)
         sorter = _get_doc_sorter()

@@ -335,6 +335,28 @@ def _db_list(parser,context,topargs):
         print("Database not found")
 
 
+@subcmd('flush',
+        dbcommands,
+        dbcommands_help,
+        help="force file update")
+def _db_flush(parser,context,topargs):
+    
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from ..db import DataBase
+    
+    try:
+        db = DataBase(args.db)
+        db.flush()
+    except IOError:
+        print("Database not found")
+
+
 @subcmd('dump',
         dbcommands,
         dbcommands_help,
