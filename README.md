@@ -32,7 +32,7 @@ not tested.
 1. Create a conda environment with the base dependencies:
     
     ```
-    > conda create -n _taxonopy -c conda-forge python=3.8 pip anytree blessed=1.17.6 graphviz inquirer openpyxl Pillow python-graphviz tinydb
+    > conda create -n _taxonopy -c conda-forge python=3.8 pip anytree blessed=1.17.6 graphviz inquirer natsort openpyxl Pillow python-graphviz tinydb
     ```
     
     Note that for Python<3.8 the `importlib_metadata` package should be added to
