@@ -9,6 +9,7 @@ from . import CLITheme
 from .schema import CLIRecordBuilder
 from ..schema import SCHTree
 from ..db import DataBase
+from ..utils import get_root_value_ids
 
 
 def new_record(schema_path="schema.json",
@@ -16,9 +17,11 @@ def new_record(schema_path="schema.json",
     
     schema = SCHTree.from_json(schema_path)
     db = DataBase(db_path)
+    root_value_ids = get_root_value_ids(db)
     
     builder = CLIRecordBuilder(schema)
     record = None
+    doc_id = None
     
     while True:
         
@@ -26,7 +29,13 @@ def new_record(schema_path="schema.json",
         node = record.root_node
         print(record)
         
-        message = f"Store record with {node.name} '{node.value}'?"
+        if node.value in root_value_ids:
+            message = "Replace "
+            doc_id = root_value_ids[node.value]
+        else:
+            message = "Store "
+        
+        message += f"record with {node.name} '{node.value}'?"
         
         try:
             choice = inquirer.list_input(message,
@@ -40,27 +49,11 @@ def new_record(schema_path="schema.json",
         if choice == "quit": return
         if choice == "retry": continue
         
-        count = db.count(f"{node.name}", node.value)
+        if doc_id is None:
+            db.add(record)
+        else:
+            db.replace(doc_id, record)
         
-        if count > 0:
-            
-            message = (f"A record with {node.name} '{node.value}' already "
-                        "exists. Add another?")
-            
-            try:
-                choice = inquirer.list_input(
-                                        message,
-                                        render=ConsoleRender(
-                                                             theme=CLITheme()),
-                                        choices=['yes', 'retry', 'quit'],
-                                        default="retry")
-            except KeyboardInterrupt:
-                sys.exit()
-            
-            if choice == "quit": return
-            if choice == "retry": continue
-        
-        db.add(record)
         return
 
 

@@ -97,7 +97,7 @@ class FlatRecordBuilder(RecordBuilderBase):
         if "required" in node_attr: required = bool(node_attr["required"])
         
         if required and existing_value is None:
-            err_msg = (f"Node {node.name} is required, but existing record"
+            err_msg = (f"Node {node.name} is required, but existing record "
                         "has no value.")
             raise ValueError(err_msg)
         
@@ -269,6 +269,9 @@ class FlatRecordBuilder(RecordBuilderBase):
                                    if x.path != self._schema.root_node.path])
 
 
+def get_root_value_ids(db):
+    return {v.root_node.value: k for k, v in db.all().items()}
+
 
 def dump_xl(out,
             schema_path="schema.json",
@@ -352,12 +355,8 @@ def dump_xl(out,
 def load_xl(db_path,
             xl_path,
             schema_path="schema.json",
-            append=False,
             strict=False,
             progress=False):
-    
-    if not append and os.path.exists(db_path):
-        os.remove(db_path)
     
     schema = SCHTree.from_json(schema_path)
     builder = FlatRecordBuilder(schema)
@@ -365,15 +364,28 @@ def load_xl(db_path,
     wb = load_workbook(xl_path)
     
     with DataBase(db_path) as db:
-    
+        
+        root_value_ids = get_root_value_ids(db)
         ws = wb['DataBase']
         titles = [cell.value for cell in ws[1]]
         
         for values in ws.iter_rows(min_row=2, values_only=True):
+            
             flat = {t: v for t, v in zip(titles, values)}
+            if flat['Title'] is None: continue
             record = builder.build(flat, strict=strict)
-            db.add(record)
+            root_value = record.root_node.value
+            
+            if root_value in root_value_ids:
+                doc_id = root_value_ids.pop(root_value)
+                db.replace(doc_id, record)
+                root_value_ids
+            else:
+                db.add(record)
+            
             if progress: print(".", end="", flush=True)
+        
+        db.remove(root_value_ids.values())
         
         if progress: print("\n", end="", flush=True)
 

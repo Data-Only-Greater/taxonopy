@@ -86,8 +86,11 @@ class DataBase:
                        for doc in sorted(self._db.search(query), key=sorter))
     
     def replace(self, doc_id, record):
-        self._db.remove(doc_ids=[doc_id])
+        self.remove([doc_id])
         self._db.insert(table.Document(record.to_dict(), doc_id=doc_id))
+    
+    def remove(self, doc_ids):
+        self._db.remove(doc_ids=doc_ids)
 
 
 def show_count(path,
