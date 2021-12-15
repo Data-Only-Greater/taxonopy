@@ -25,7 +25,12 @@ def new_record(schema_path="schema.json",
     
     while True:
         
-        record = builder.build(record)
+        try:
+            record = builder.build(record)
+        except KeyboardInterrupt:
+            db.close()
+            sys.exit()
+        
         node = record.root_node
         print(record)
         
@@ -44,6 +49,7 @@ def new_record(schema_path="schema.json",
                                          choices=['yes', 'retry', 'quit'],
                                          default="yes")
         except KeyboardInterrupt:
+            db.close()
             sys.exit()
         
         if choice == "quit": return
@@ -53,6 +59,8 @@ def new_record(schema_path="schema.json",
             db.add(record)
         else:
             db.replace(doc_id, record)
+        
+        db.close()
         
         return
 
@@ -80,14 +88,20 @@ def update_records(path,
                                          choices=['yes', 'no', 'quit'],
                                          default="yes")
         except KeyboardInterrupt:
-                sys.exit()
+            db.close()
+            sys.exit()
             
         if choice == "quit": return
         if choice == "no": continue
         
         while True:
             
-            updated = builder.build(record, node_path)
+            try:
+                updated = builder.build(record, node_path)
+            except KeyboardInterrupt:
+                db.close()
+                sys.exit()
+            
             print(updated)
             
             message = "Store updated record?"
@@ -102,6 +116,7 @@ def update_records(path,
                                                  'quit'],
                                         default="yes")
             except KeyboardInterrupt:
+                db.close()
                 sys.exit()
             
             if choice == "quit": return
@@ -110,3 +125,5 @@ def update_records(path,
             
             db.replace(doc_id, updated)
             break
+    
+    db.close()

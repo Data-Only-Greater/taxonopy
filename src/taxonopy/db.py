@@ -8,7 +8,7 @@ from collections.abc import ByteString, Iterable, Mapping, Sequence
 from anytree.resolver import ChildResolverError
 from natsort import natsorted
 from tinydb import table, TinyDB, Query
-from tinydb.middlewares import Middleware
+from tinydb.middlewares import CachingMiddleware, Middleware
 from tinydb.storages import JSONStorage
 
 from .schema import SCHTree
@@ -44,7 +44,8 @@ class DataBase:
                           indent=4,
                           separators=(',', ': '),
                           access_mode=access_mode,
-                          storage=WriteSortMiddleware(JSONStorage))
+                          storage=CachingMiddleware(
+                                            WriteSortMiddleware(JSONStorage)))
     
     def __enter__(self):
         self._db.__enter__()

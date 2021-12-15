@@ -353,6 +353,7 @@ def _db_flush(parser,context,topargs):
     try:
         db = DataBase(args.db)
         db.flush()
+        db.close()
     except IOError:
         print("Database not found")
 

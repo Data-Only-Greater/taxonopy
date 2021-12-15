@@ -113,13 +113,9 @@ class CLIRecordBuilder(RecordBuilderBase):
         
         while True:
             
-            try:
-                value = inquirer.text(message=message,
-                                      render=self._render,
-                                      default=default)
-            except KeyboardInterrupt:
-                sys.exit()
-            
+            value = inquirer.text(message=message,
+                                  render=self._render,
+                                  default=default)
             value = _apply_backspace(value)
             
             if value:
@@ -169,13 +165,10 @@ class CLIRecordBuilder(RecordBuilderBase):
             
             message = f"Add {node.name}?"
             
-            try:
-                choice = inquirer.list_input(message,
-                                             render=self._render,
-                                             choices=['yes', 'no'],
-                                             default=default)
-            except KeyboardInterrupt:
-                sys.exit()
+            choice = inquirer.list_input(message,
+                                         render=self._render,
+                                         choices=['yes', 'no'],
+                                         default=default)
             
             if choice == "no": return
         
@@ -191,13 +184,10 @@ class CLIRecordBuilder(RecordBuilderBase):
             children = [x.name for x in existing_node.children]
             if children and children[0] in choices: default = children[0]
         
-        try:
-            choice = inquirer.list_input(node.name,
-                                         render=self._render,
-                                         choices=choices,
-                                         default=default)
-        except KeyboardInterrupt:
-            sys.exit()
+        choice = inquirer.list_input(node.name,
+                                     render=self._render,
+                                     choices=choices,
+                                     default=default)
         
         choice_path = f"{node_path}/{choice}"
         chosen_node = self._schema.find_by_path(choice_path)
@@ -253,13 +243,10 @@ class CLIRecordBuilder(RecordBuilderBase):
         
         while True:
             
-            try:
-                chosen = inquirer.checkbox(message,
-                                           render=self._render,
-                                           choices=choices,
-                                           default=default)
-            except KeyboardInterrupt:
-                sys.exit()
+            chosen = inquirer.checkbox(message,
+                                       render=self._render,
+                                       choices=choices,
+                                       default=default)
             
             if not required or len(chosen) > 0:
                 break
