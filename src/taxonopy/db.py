@@ -3,7 +3,7 @@
 import os
 import itertools
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import ByteString, Iterable, Mapping, Sequence
 
 from anytree.resolver import ChildResolverError
 from natsort import natsorted
@@ -24,7 +24,7 @@ class WriteSortMiddleware(Middleware):
         return data
     
     def write(self, data):
-        data = _order_dict(data)
+        data = _order_data(data)
         self.storage.write(data)
     
     def close(self):
@@ -184,9 +184,23 @@ def show_records(path, value=None, exact=False, db_path="db.json"):
     for record in db.get(path, value, exact).values(): print(record)
 
 
-def _order_dict(dictionary):
-    return {k: _order_dict(v) if isinstance(v, dict) else v
-            for k, v in natsorted(dictionary.items())}
+def _order_data(unordered):
+    
+    def key_sorter(d):
+        if "parent" in d:
+            return (d["parent"], d["name"])
+        return (d["name"], 1)
+    
+    if isinstance(unordered, (str, ByteString)):
+        return unordered
+    
+    if isinstance(unordered, Sequence):
+        return [_order_data(v) for v in natsorted(unordered, key=key_sorter)]
+    
+    if isinstance(unordered, Mapping):
+        return {k: _order_data(v) for k, v in natsorted(unordered.items())}
+    
+    return unordered
 
 
 def _make_query(path, value=None, exact=False):

@@ -81,7 +81,7 @@ def _print_version():
     should_exit = False
     
     if test_arg in ['-v', '--version']:
-        from . import get_name, get_version
+        from .. import get_name, get_version
         print(f"{get_name()} {get_version()}")
         should_exit = True
     
