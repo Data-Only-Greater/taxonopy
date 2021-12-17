@@ -356,18 +356,34 @@ def load_xl(db_path,
             xl_path,
             schema_path="schema.json",
             strict=False,
-            progress=False):
+            progress=False,
+            title_sep=":",
+            value_sep=", "):
     
     schema = SCHTree.from_json(schema_path)
-    builder = FlatRecordBuilder(schema)
+    schema_titles = _get_tree_titles(schema, sep=title_sep)
+    builder = FlatRecordBuilder(schema, title_sep, value_sep)
     
     wb = load_workbook(xl_path)
+    ws = wb['DataBase']
+    titles = [cell.value for cell in ws[1] if cell.value is not None]
+    
+    if strict and not set(titles) <= set(schema_titles):
+        
+        extra_titles = set(titles) - set(schema_titles)
+        extra_titles_str = ", ".join(extra_titles)
+        
+        if len(extra_titles) == 1:
+            noun = "column"
+        else:
+            noun = "columns"
+        
+        err_msg = (f"Invalid {noun} '{extra_titles_str}' found")
+        raise ValueError(err_msg)
     
     with DataBase(db_path) as db:
         
         root_value_ids = get_root_value_ids(db)
-        ws = wb['DataBase']
-        titles = [cell.value for cell in ws[1]]
         
         for values in ws.iter_rows(min_row=2, values_only=True):
             
