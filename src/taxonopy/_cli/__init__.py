@@ -382,6 +382,8 @@ def _db_dump(parser,context,topargs):
     
     try:
         dump_xl(args.path, args.schema, args.db)
+    except PermissionError:
+        print("Can not write to open file")
     except IOError:
         print("Database not found")
 
