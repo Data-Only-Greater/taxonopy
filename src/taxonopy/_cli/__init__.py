@@ -402,17 +402,19 @@ def _db_load(parser,context,topargs):
                         help='path to the schema (default is ./schema.json)',
                         action="store",
                         default="schema.json")
-    parser.add_argument('--strict',
-                        help=('values must conform to the schema'),
+    parser.add_argument('--force',
+                        help=('ignore values that do no conform to the '
+                              'schema'),
                         action="store_true")
     
     args = parser.parse_args(topargs)
+    strict = not args.force
     
     from ..utils import load_xl
     load_xl(args.db_path,
             args.xl_path,
             args.schema,
-            args.strict,
+            strict,
             progress=True)
 
 ### SCHEMA CLI
