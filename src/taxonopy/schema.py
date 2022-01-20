@@ -1,11 +1,16 @@
 
 import os
 import json
+import textwrap
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from collections import OrderedDict
 
-from anytree import LevelOrderGroupIter, Node, PreOrderIter, RenderTree
+from anytree import (ContStyle,
+                     LevelOrderGroupIter,
+                     Node,
+                     PreOrderIter,
+                     RenderTree)
 from anytree.exporter import UniqueDotExporter
 from anytree.resolver import ChildResolverError, Resolver
 from anytree.search import findall
@@ -296,7 +301,7 @@ class Tree:
         return not self.diff(other)
     
     def __str__(self):
-        return render_node(self.root_node, extra_attrs=self.extra_attrs)
+        return render_node(self.root_node, post_attrs=self.extra_attrs)
 
 
 class SCHTree(Tree):
@@ -310,7 +315,8 @@ class SCHTree(Tree):
                       "inquire",
                       "required",
                       "import",
-                      "children"]
+                      "children",
+                      "description"]
         
         for key in extra_keys:
             if key in kwargs: data[key] = kwargs[key]
@@ -337,6 +343,21 @@ class SCHTree(Tree):
         return super().to_dot(file_name=file_name,
                               root_path=root_path,
                               nodeattr_fn=SCH_nodeattr_fn)
+    
+    def __str__(self):
+        
+        post_attrs = list(self.extra_attrs)
+        line_attrs = None
+        
+        # Treat description specially
+        if "description" in post_attrs:
+            post_attrs.remove("description")
+            line_attrs = ["description"]
+        
+        return render_node(self.root_node,
+                           post_attrs=post_attrs,
+                           line_attrs=line_attrs)
+
 
 
 class RecordBuilderBase(ABC):
@@ -401,21 +422,56 @@ def copy_node(node, extra_attrs, orphan=False):
     return Node(node.name, children=children, **kwargs)
 
 
-def render_node(root, extra_attrs=None):
+def render_node(root, post_attrs=None, line_attrs=None):
     
-    if extra_attrs is None: extra_attrs = []
+    if post_attrs is None: post_attrs = []
+    if line_attrs is None: line_attrs = []
+    
     msg = ''
     
-    for pre, _, node in RenderTree(root):
+    for pre, fill, node in RenderTree(root):
         
         msg += f"{pre}{node.name}"
         
-        for attr in extra_attrs:
+        for attr in post_attrs:
             if hasattr(node, attr):
                 msg += f" {attr}={getattr(node, attr)}"
         
         msg += "\n"
-            
+        
+        for attr in line_attrs:
+            if hasattr(node, attr):
+                msg += render_lines(fill, node, attr)
+    
+    return msg
+
+
+def render_lines(fill, node, attr, pad=2, wrap=79, style=None):
+    
+    if style is None: style = ContStyle()
+    vertical = style.vertical[0]
+    
+    attr_key = f"{attr}: "
+    attr_value = f"{getattr(node, attr)}"
+    padding = " " * (pad - 1)
+    
+    if node.children:
+        if len(fill) == 1:
+            fill = vertical
+        else:
+            padding = f"{vertical}{padding}"
+    else:
+        padding += " "
+    
+    true_wrap = wrap - pad - len(fill) - len(attr_key)
+    wrapped = textwrap.wrap(attr_value, true_wrap)
+    
+    msg = f"{fill}{padding}{attr_key}{wrapped[0]}\n"
+    attr_pad = " " * len(attr_key)
+    
+    for line in wrapped[1:]:
+        msg += f"{fill}{padding}{attr_pad}{line}\n"
+    
     return msg
 
 

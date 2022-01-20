@@ -6,8 +6,6 @@ Created on Tue May 11 14:55:45 2021
 """
 
 import re
-import sys
-import importlib
 
 import inquirer
 from anytree import PreOrderIter
