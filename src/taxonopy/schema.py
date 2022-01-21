@@ -21,10 +21,14 @@ COLOR_SCHEME = ["aliceblue", "antiquewhite", "azure", "coral", "palegreen"]
 
 class Tree:
     
-    def __init__(self, root_node=None, extra_attrs=None, level_prefix="L"):
+    def __init__(self, root_node=None,
+                       short_attrs=None,
+                       long_attrs=None,
+                       level_prefix="L"):
         self.root_node = root_node
-        self.extra_attrs = (set([]) if extra_attrs is None
-                                                        else set(extra_attrs))
+        self.short_attrs = (set([]) if short_attrs is None
+                                                        else set(short_attrs))
+        self.long_attrs = (set([]) if long_attrs is None else set(long_attrs))
         self.prefix = level_prefix
     
     @classmethod
@@ -110,7 +114,7 @@ class Tree:
                     
                     node_dict["parent"] = parent_path
                 
-                for attr in sorted(self.extra_attrs):
+                for attr in sorted(self.short_attrs.union(self.long_attrs)):
                     if hasattr(node, attr):
                         node_dict[attr] = getattr(node, attr)
                 
@@ -167,24 +171,26 @@ class Tree:
     
     def to_tree(self, path=None):
         
+        extra_attrs = self.short_attrs.union(self.long_attrs)
+        
         # Copy the entire tree
         if path is None:
-            new_root = copy_node(self.root_node, self.extra_attrs)
-            return type(self)(new_root, self.extra_attrs)
+            new_root = copy_node(self.root_node, extra_attrs)
+            return type(self)(new_root, self.short_attrs, self.long_attrs)
         
         node = self.find_by_path(path)
-        new_root = copy_node(self.root_node, self.extra_attrs, orphan=True)
+        new_root = copy_node(self.root_node, extra_attrs, orphan=True)
         last_node = new_root
         
         for top_node in node.ancestors[1:]:
-            next_node = copy_node(top_node, self.extra_attrs, orphan=True)
+            next_node = copy_node(top_node, extra_attrs, orphan=True)
             last_node.children = [next_node]
             last_node = next_node
         
-        final_node = copy_node(node, self.extra_attrs)
+        final_node = copy_node(node, extra_attrs)
         last_node.children = [final_node]
     
-        return type(self)(new_root, self.extra_attrs)
+        return type(self)(new_root, self.short_attrs, self.long_attrs)
     
     def find_by_name(self, name, parent_path=None):
         
@@ -217,7 +223,10 @@ class Tree:
     
     def add_node(self, name, parent=None, children=None, **kwargs):
         
-        self.extra_attrs |= set(kwargs.keys())
+        if "long_attrs" in kwargs:
+            self.long_attrs |= set(kwargs["long_attrs"])
+        
+        self.short_attrs |= set(kwargs.keys()) - self.long_attrs
         
         if parent is None:
             self.root_node = Node(name, children=children, **kwargs)
@@ -269,7 +278,7 @@ class Tree:
             
             matching = True
             
-            for attr in self.extra_attrs:
+            for attr in self.short_attrs.union(self.long_attrs):
                 
                 if ((hasattr(this_node, attr) and
                      not hasattr(other_node, attr)) or
@@ -301,7 +310,9 @@ class Tree:
         return not self.diff(other)
     
     def __str__(self):
-        return render_node(self.root_node, post_attrs=self.extra_attrs)
+        return render_node(self.root_node,
+                           short_attrs=self.short_attrs,
+                           long_attrs=self.long_attrs)
 
 
 class SCHTree(Tree):
@@ -316,6 +327,7 @@ class SCHTree(Tree):
                       "required",
                       "import",
                       "children",
+                      "long_attrs",
                       "description"]
         
         for key in extra_keys:
@@ -343,21 +355,6 @@ class SCHTree(Tree):
         return super().to_dot(file_name=file_name,
                               root_path=root_path,
                               nodeattr_fn=SCH_nodeattr_fn)
-    
-    def __str__(self):
-        
-        post_attrs = list(self.extra_attrs)
-        line_attrs = None
-        
-        # Treat description specially
-        if "description" in post_attrs:
-            post_attrs.remove("description")
-            line_attrs = ["description"]
-        
-        return render_node(self.root_node,
-                           post_attrs=post_attrs,
-                           line_attrs=line_attrs)
-
 
 
 class RecordBuilderBase(ABC):
@@ -422,10 +419,10 @@ def copy_node(node, extra_attrs, orphan=False):
     return Node(node.name, children=children, **kwargs)
 
 
-def render_node(root, post_attrs=None, line_attrs=None):
+def render_node(root, short_attrs=None, long_attrs=None):
     
-    if post_attrs is None: post_attrs = []
-    if line_attrs is None: line_attrs = []
+    if short_attrs is None: short_attrs = []
+    if long_attrs is None: long_attrs = []
     
     msg = ''
     
@@ -433,13 +430,13 @@ def render_node(root, post_attrs=None, line_attrs=None):
         
         msg += f"{pre}{node.name}"
         
-        for attr in post_attrs:
+        for attr in short_attrs:
             if hasattr(node, attr):
                 msg += f" {attr}={getattr(node, attr)}"
         
         msg += "\n"
         
-        for attr in line_attrs:
+        for attr in long_attrs:
             if hasattr(node, attr):
                 msg += render_lines(fill, node, attr)
     
@@ -465,6 +462,8 @@ def render_lines(fill, node, attr, pad=2, wrap=79, style=None):
     
     true_wrap = wrap - pad - len(fill) - len(attr_key)
     wrapped = textwrap.wrap(attr_value, true_wrap)
+    
+    if not wrapped: return ""
     
     msg = f"{fill}{padding}{attr_key}{wrapped[0]}\n"
     attr_pad = " " * len(attr_key)
