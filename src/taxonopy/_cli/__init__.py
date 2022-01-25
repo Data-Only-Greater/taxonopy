@@ -483,6 +483,46 @@ def _schema_render(parser,context,topargs):
     render_tree(schema, args.out)
 
 
+@subcmd('document',
+        schemacommands,
+        schemacommands_help,
+        help="format schema in pandoc markdown (with pandoc-crossref)")
+def _schema_document(parser,context,topargs):
+    
+    parser.add_argument('-o', '--out',
+                        help='output to given file path',
+                        action="store")
+    parser.add_argument('--title',
+                        help='title of the markdown document',
+                        action='store',
+                        default="Schema Glossary")
+    parser.add_argument('--width',
+                        help='maximum width of the markdown document',
+                        action='store',
+                        type=int,
+                        default=120)
+    parser.add_argument('--date-format',
+                        help='format for the date using datetime convention',
+                        action='store',
+                        default="%d %B %Y")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    
+    args = parser.parse_args(topargs)
+    if not os.path.isfile(args.schema): return
+    
+    from ..schema import SCHTree
+    
+    schema = SCHTree.from_json(args.schema)
+    msgs = schema.to_pandoc(title=args.title,
+                            width=args.width,
+                            date_format=args.date_format,
+                            file_name=args.out)
+    if msgs: print("\n".join(msgs))
+
+
 @subcmd('new',
         schemacommands,
         schemacommands_help,

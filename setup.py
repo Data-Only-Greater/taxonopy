@@ -29,6 +29,7 @@ setuptools.setup(
         'natsort',
         'openpyxl',
         'Pillow',
+        'tabulate',
         'tinydb'
     ],
     extras_require={

@@ -1,6 +1,7 @@
 
 import os
 import json
+import datetime as dt
 import textwrap
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -14,6 +15,7 @@ from anytree import (ContStyle,
 from anytree.exporter import UniqueDotExporter
 from anytree.resolver import ChildResolverError, Resolver
 from anytree.search import findall
+from tabulate import tabulate
 
 # TODO make the color scheme dynamic
 COLOR_SCHEME = ["aliceblue", "antiquewhite", "azure", "coral", "palegreen"]
@@ -355,10 +357,31 @@ class SCHTree(Tree):
         return super().to_dot(file_name=file_name,
                               root_path=root_path,
                               nodeattr_fn=SCH_nodeattr_fn)
+    
+    def to_pandoc(self, title="Schema Glossary",
+                        width=120,
+                        date_format="%d %B %Y",
+                        file_name=None):
+        
+        nodes = [self.root_node]
+        msgs = document(nodes,
+                        title,
+                        date_format=date_format,
+                        attrs=["description"],
+                        attrs_names=["Description"],
+                        width_attr="description",
+                        width=width)
+        
+        if file_name is None:
+            return msgs
+        
+        with open(file_name, "wt") as f:
+            for msg in msgs:
+                f.write(msg + "\n")
 
 
 class RecordBuilderBase(ABC):
-
+    
     def __init__(self, schema):
         
         self._schema = schema
@@ -512,6 +535,97 @@ def copy_node_to_record(record, node, **node_attr):
         record.find_by_path(node_path)
     except ChildResolverError:
         record.add_node(node.name, parent_path, **node_attr)
+
+
+def document(nodes,
+             title,
+             date_format="%d %B %Y",
+             attrs=None,
+             attrs_names=None,
+             width_attr=None,
+             width=None,
+             _msgs=None,
+             _parent=None,
+             _attrs_width=None):
+    
+    get_dot_path = \
+        lambda x: ".".join([n.name.lower() for n in x.path]).replace(" ", "_")
+    
+    if attrs is None: attrs = []
+    if attrs_names is None: attrs_names = []
+    
+    if _msgs is None:
+        date = dt.date.today()
+        msgs = [f"% {title}",
+                "%",
+                f"% {date.strftime(date_format)}",
+                ""]
+    else:
+        msgs = _msgs
+    
+    if _parent is None:
+        caption = "Root node"
+        dot_path = "root"
+    else:
+        caption = f'Children of "{_parent.name}"'
+        dot_path = get_dot_path(_parent)
+    
+    if _attrs_width is None: _attrs_width = 999    
+    
+    headers = ["Name"] + attrs_names + ["Children"]
+    table = []
+    
+    for node in nodes:
+        
+        name = node.name
+        attrs_values = [None] * len(attrs_names)
+        children = None
+        
+        for i, attr in enumerate(attrs):
+            if hasattr(node, attr):
+                value = getattr(node, attr)
+                if attr == width_attr:
+                    value = textwrap.fill(value, _attrs_width)
+                attrs_values[i] = value
+        
+        if node.children:
+            children = f"[@tbl:{get_dot_path(node)}]"
+        
+        table.append([name] + attrs_values + [children])
+    
+    msgs += tabulate(table, headers, tablefmt="grid").split("\n")
+    msgs.append("")
+    msgs.append(f": {caption} {{#tbl:{dot_path}}}")
+    msgs.append("")
+    
+    for node in nodes:
+        if not node.children: continue
+        document(node.children,
+                 title,
+                 attrs=attrs,
+                 attrs_names=attrs_names,
+                 width_attr=width_attr,
+                 _msgs=msgs,
+                 _parent=node,
+                 _attrs_width=_attrs_width)
+    
+    # Check the width if this is root
+    if _parent is None and width is not None:
+        max_width = max([len(msg) for msg in msgs])
+        if max_width > width:
+            _attrs_width -= (max_width - width)
+            msgs = document(nodes,
+                            title,
+                            date_format=date_format,
+                            attrs=attrs,
+                            attrs_names=attrs_names,
+                            width_attr=width_attr,
+                            width=width,
+                            _msgs=None,
+                            _parent=None,
+                            _attrs_width=_attrs_width)
+    
+    return msgs
 
 
 def _get_data(filepath_or_data):
