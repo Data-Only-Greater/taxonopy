@@ -193,7 +193,9 @@ def _order_data(unordered):
     def key_sorter(d):
         if "parent" in d:
             return (d["parent"], d["name"])
-        return (d["name"], 1)
+        if "name" in d:
+            return (d["name"], 1)
+        return (d, 1)
     
     if isinstance(unordered, (str, ByteString)):
         return unordered
