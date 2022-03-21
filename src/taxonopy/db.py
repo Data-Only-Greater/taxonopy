@@ -229,7 +229,8 @@ def _make_query(path, value=None, exact=False):
             test = lambda value, search: search in value
             
         result &= query[f'L{len(path_resolution) - 1}'].any(
-                                            query.value.test(test, value))
+            (query.name == path_resolution[-1]) &
+            (query.value.test(test, value)))
     
     return result
 
