@@ -21,18 +21,15 @@ with the help of the [openpyxl] library.
 
 **Note, this package is in early-development. Use at your own risk.**
 
-This package supports Python versions 3.6--3.8. Version 3.9 support will be
-added when the upstream packages support it. Currently, it's only tested on
-Windows (for Excel support).
-
-Installation instructions are provided for use with the [Anaconda Python]
-distribution. A similar process will probably work for pip, but it's currently
-not tested.
+This package supports Python versions 3.7--3.10 and, currently, it's only 
+tested on Windows (for Excel support). Installation instructions are provided 
+for use with the [Anaconda Python] distribution. A similar process will 
+probably work for pip, but it's currently not tested.
 
 1. Create a conda environment with the base dependencies:
     
     ```
-    > conda create -n _taxonopy -c conda-forge python=3.8 pip anytree blessed=1.17.6 graphviz inquirer natsort openpyxl Pillow python-graphviz tabulate tinydb
+    > conda create -n _taxonopy -c conda-forge python=3.10 pip anytree blessed graphviz inquirer natsort openpyxl Pillow python-graphviz tabulate tinydb
     ```
     
     Note that for Python<3.8 the `importlib_metadata` package should be added to

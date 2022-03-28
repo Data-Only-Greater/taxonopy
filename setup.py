@@ -19,7 +19,7 @@ setuptools.setup(
     ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
-    python_requires=">=3.6, <3.9.0",
+    python_requires=">=3.7, <3.11.0",
     install_requires=[
         'anytree',
         'blessed',
