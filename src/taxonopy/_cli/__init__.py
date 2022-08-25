@@ -3,8 +3,8 @@
 import os
 import csv
 import sys
-import argparse
 import datetime
+import tempfile
 
 import inquirer
 from blessed import Terminal
@@ -124,7 +124,21 @@ def _db_new(parser,context,topargs):
     args = parser.parse_args(topargs)
     
     from .db import new_record
-    new_record(args.schema, args.db)
+    from ..db import JSONDataBase
+    from ..schema import SCHTree
+    
+    try:
+        db = JSONDataBase(args.db, check_existing=True)
+    except IOError:
+        print("Database not found")
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
+    new_record(schema, db)
+
 
 
 @subcmd('update',
@@ -157,16 +171,25 @@ def _db_update(parser,context,topargs):
     args = parser.parse_args(topargs)
     
     from .db import update_records
+    from ..db import JSONDataBase
+    from ..schema import SCHTree
     
     try:
-        update_records(args.path,
-                       args.value,
-                       args.exact,
-                       args.field,
-                       args.schema,
-                       args.db)
+        db = JSONDataBase(args.db, check_existing=True)
     except IOError:
         print("Database not found")
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
+    update_records(args.path,
+                   schema,
+                   db,
+                   args.value,
+                   args.exact,
+                   args.field)
 
 
 @subcmd('equal',
@@ -174,6 +197,31 @@ def _db_update(parser,context,topargs):
         dbcommands_help,
         help="test equality of two database files")
 def _db_equal(parser,context,topargs):
+    
+    from ..db import JSONDataBase
+    from ..utils import load_xl
+    
+    def load_db_records(db_path, schema, strict):
+        
+        db_name, db_extension = os.path.splitext(db_path)
+        
+        if db_extension not in [".xlsx", ".xls"]:
+            with JSONDataBase(db_path, check_existing=True) as db:
+                return db.to_records()
+        
+        with tempfile.TemporaryDirectory() as tmpdirname:
+        
+            db_tempname = os.path.basename(db_name) + ".json"
+            db_temppath = os.path.join(tmpdirname, db_tempname)
+            
+            load_xl(db_temppath,
+                    db_path,
+                    schema,
+                    strict=strict,
+                    progress=True)
+            
+            with JSONDataBase(db_temppath, check_existing=True) as db:
+                return db.to_records()
     
     parser.add_argument('db_one',
                         help='path to first database (json or Excel)',
@@ -192,16 +240,33 @@ def _db_equal(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from ..utils import check_dbs_equal
+    from ..schema import SCHTree
+    from ..utils import find_non_matching_records
     
     try:
-        check_dbs_equal(args.db_one,
-                        args.db_two,
-                        args.schema,
-                        args.strict,
-                        progress=True)
+        schema = SCHTree.from_json(args.schema)
     except IOError:
-        print("Database not found")
+        print("Schema not found")
+    
+    try:
+        records_one = load_db_records(args.db_one, schema, args.strict)
+    except IOError:
+        print("First database not found")
+    
+    try:
+        records_two = load_db_records(args.db_two, schema, args.strict)
+    except IOError:
+        print("Second database not found")
+    
+    missing = find_non_matching_records(records_one,
+                                        records_two)
+    
+    if not missing:
+        print("Databases are equal")
+        return
+    
+    missing_str = "\n".join(missing)
+    print(f"Differences detected in records:\n{missing_str}")
 
 
 @subcmd('count',
@@ -226,12 +291,17 @@ def _db_count(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from ..db import show_count
+    from ..db import JSONDataBase, make_query
     
     try:
-        show_count(args.path, args.value, args.exact, args.db)
+        db = JSONDataBase(args.db, check_existing=True)
     except IOError:
         print("Database not found")
+    
+    query = make_query(args.path, args.value, args.exact)
+    count = db.count(query)
+    msg = f"{args.path}: {count}"
+    print(msg)
 
 
 @subcmd('choices',
@@ -257,10 +327,22 @@ def _db_choices(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
+    from ..db import JSONDataBase
+    from ..schema import SCHTree
     from ..utils import choice_count
     
     try:
-        count = choice_count(args.path, args.db, args.schema)
+        db = JSONDataBase(args.db, check_existing=True)
+    except IOError:
+        print("Database not found")
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
+    try:
+        count = choice_count(args.path, db, schema)
     except IOError:
         print("Database not found")
     
@@ -303,12 +385,18 @@ def _db_show(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from ..db import show_records
+    from ..db import JSONDataBase, make_query
     
     try:
-        show_records(args.path, args.value, args.exact, args.db)
+        db = JSONDataBase(args.db, check_existing=True)
     except IOError:
         print("Database not found")
+    
+    query = make_query(args.path, args.value, args.exact)
+    db = db.search(query)
+    
+    for record in db.to_records.values():
+        print(record)
 
 
 @subcmd('list',
@@ -348,10 +436,10 @@ def _db_flush(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from ..db import DataBase
+    from ..db import JSONDataBase
     
     try:
-        db = DataBase(args.db)
+        db = JSONDataBase(args.db)
         db.flush()
         db.close()
     except IOError:
@@ -378,14 +466,24 @@ def _db_dump(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
+    from ..db import JSONDataBase
+    from ..schema import SCHTree
     from ..utils import dump_xl
     
     try:
-        dump_xl(args.path, args.schema, args.db)
-    except PermissionError:
-        print("Can not write to open file")
+        db = JSONDataBase(args.db, check_existing=True)
     except IOError:
         print("Database not found")
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
+    try:
+        dump_xl(args.path, schema, db)
+    except PermissionError:
+        print("Can not write to open file")
 
 
 @subcmd('load',
@@ -412,12 +510,20 @@ def _db_load(parser,context,topargs):
     args = parser.parse_args(topargs)
     strict = not args.force
     
+    from ..schema import SCHTree
     from ..utils import load_xl
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
     load_xl(args.db_path,
             args.xl_path,
-            args.schema,
+            schema,
             strict,
             progress=True)
+
 
 ### SCHEMA CLI
 

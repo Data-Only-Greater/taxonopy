@@ -12,11 +12,8 @@ from ..db import DataBase
 from ..utils import get_root_value_ids
 
 
-def new_record(schema_path="schema.json",
-               db_path="db.json"):
+def new_record(schema, db):
     
-    schema = SCHTree.from_json(schema_path)
-    db = DataBase(db_path)
     root_value_ids = get_root_value_ids(db)
     
     builder = CLIRecordBuilder(schema)
@@ -66,15 +63,13 @@ def new_record(schema_path="schema.json",
 
 
 def update_records(path,
+                   schema,
+                   db,
                    value=None,
                    exact=False,
-                   node_path=None,
-                   schema_path="schema.json",
-                   db_path="db.json"):
+                   node_path=None):
     
-    schema = SCHTree.from_json(schema_path)
     builder = CLIRecordBuilder(schema)
-    db = DataBase(db_path, check_existing=True)
     
     for doc_id, record in db.get(path, value, exact).items():
         

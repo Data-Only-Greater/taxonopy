@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import abc
 import itertools
 from collections import OrderedDict
 from collections.abc import ByteString, Iterable, Mapping, Sequence
@@ -9,9 +10,9 @@ from anytree.resolver import ChildResolverError
 from natsort import natsorted
 from tinydb import table, TinyDB, Query
 from tinydb.middlewares import CachingMiddleware, Middleware
-from tinydb.storages import JSONStorage
+from tinydb.storages import JSONStorage, MemoryStorage
 
-from .schema import SCHTree
+from .schema import SCHTree, get_node_attr
 
 
 class WriteSortMiddleware(Middleware):
@@ -31,21 +32,10 @@ class WriteSortMiddleware(Middleware):
         self.storage.close()
 
 
-class DataBase:
+class DataBase(metaclass=abc.ABCMeta):
     
-    def __init__(self, db_path="db.json",
-                       check_existing=False,
-                       access_mode='r+'):
-        
-        if check_existing and not os.path.isfile(db_path):
-            raise IOError(f"Path {db_path} does not contain a valid database")
-        
-        self._db = TinyDB(db_path,
-                          indent=4,
-                          separators=(',', ': '),
-                          access_mode=access_mode,
-                          storage=CachingMiddleware(
-                                            WriteSortMiddleware(JSONStorage)))
+    def __init__(self, *args, **kwargs):
+        self._db = self._get_db(*args, **kwargs)
     
     def __enter__(self):
         self._db.__enter__()
@@ -54,54 +44,157 @@ class DataBase:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._db.__exit__(exc_type, exc_val, exc_tb)
     
+    @abc.abstractmethod
+    def _get_db(self, *args, **kwargs):
+        pass
+    
+    @abc.abstractmethod
+    def _get_repr(self):
+        pass
+    
     def close(self):
         self._db.close()
     
-    def add(self, record):
+    def insert(self, record):
         self._db.insert(record.to_dict())
     
-    def all(self):
-        sorter = _get_doc_sorter()
-        return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
-                                   for doc in sorted(self._db, key=sorter))
-    
-    def count(self, node_path, value=None, exact=False, inverse=False):
-        
-        query = _make_query(node_path, value, exact)
-        
-        if inverse:
-            result = self._db.count(~query)
-        else:
-            result = self._db.count(query)
-        
-        return result
-    
-    def flush(self):
-        null = lambda x: x
-        self._db._update_table(null)
-    
-    def get(self, node_path, value=None, exact=False):
-        query = _make_query(node_path, value, exact)
-        sorter = _get_doc_sorter()
-        return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
-                       for doc in sorted(self._db.search(query), key=sorter))
+    def remove(self, doc_ids):
+        self._db.remove(doc_ids=doc_ids)
     
     def replace(self, doc_id, record):
         self.remove([doc_id])
         self._db.insert(table.Document(record.to_dict(), doc_id=doc_id))
     
-    def remove(self, doc_ids):
-        self._db.remove(doc_ids=doc_ids)
+    def flush(self):
+        null = lambda x: x
+        self._db._update_table(null)
+    
+    def count(self, query):
+        return self._db.count(query)
+    
+    def search(self, query):
+        documents = self._db.search(query)
+        if not documents: documents = None
+        return MemoryDataBase(documents)
+    
+    def to_records(self):
+        sorter = _get_doc_sorter()
+        return OrderedDict((doc.doc_id, SCHTree.from_dict(dict(doc)))
+                                   for doc in sorted(self._db, key=sorter))
+    
+    def projection(self, paths=None):
+        
+        def _get_node_props(node):
+            
+            result = get_node_attr(node)
+            
+            if node.children:
+                
+                child_names = []
+                sorter = _get_node_sorter()
+                
+                for child in sorted(node.children, key=sorter):
+                    child_names.append(child.name)
+                
+                result["children"] = child_names
+            
+            return result
+        
+        if not _is_iterable(paths):
+            paths = (paths,)
+        
+        records = self.to_records()
+        result = {"id": [rid for rid in records.keys()]}
+        
+        for path in paths:
+            
+            values = []
+            
+            for record in records.values():
+                
+                if path is None:
+                    node = record.root_node
+                    path = node.name
+                else:
+                    try: 
+                        node = record.find_by_path(path)
+                    except ChildResolverError:
+                        continue
+                
+                values.append(_get_node_props(node))
+            
+            result[path] = values
+        
+        return result
+    
+    def __len__(self):
+        return len(self._db)
+    
+    def __repr__(self):
+        return f"<{self._get_repr()}>"
 
 
-def show_count(path,
-               value=None,
-               exact=False,
-               db_path="db.json"):
-    db = DataBase(db_path, check_existing=True)
-    count = db.count(path, value, exact)
-    msg = f"{path}: {count}"
-    print(msg)
+class JSONDataBase(DataBase):
+    
+    def _get_db(self, db_path="db.json",
+                      check_existing=False,
+                      access_mode='r+'):
+        
+        if check_existing and not os.path.isfile(db_path):
+            raise IOError(f"Path {db_path} does not contain a valid database")
+        
+        self._path = db_path
+        
+        return TinyDB(db_path,
+                      indent=4,
+                      separators=(',', ': '),
+                      access_mode=access_mode,
+                      storage=CachingMiddleware(
+                                            WriteSortMiddleware(JSONStorage)))
+    
+    def _get_repr(self):
+        return f"JSONDataBase records: {len(self)} path: {self._path}"
+
+
+class MemoryDataBase(DataBase):
+    
+    def _get_db(self, documents=None):
+        
+        memdb = TinyDB(storage=MemoryStorage)
+        
+        if documents is not None:
+            memdb.insert_multiple(documents)
+        
+        return memdb
+    
+    def _get_repr(self):
+        return f"MemoryDataBase records: {len(self)}"
+
+
+def make_query(path, value=None, exact=False):
+    
+    query = Query()
+    path_resolution = path.strip('/').split('/')
+    
+    if len(path_resolution) == 1:
+        result = query['L0'].any(query.name == path_resolution[0])
+    else:
+        result = query[f'L{len(path_resolution) - 1}'].any(
+                            (query.name == path_resolution[-1]) &
+                            (query.parent == '/'.join(path_resolution[:-1])))
+    
+    if value is not None:
+        
+        if exact:
+            test = lambda value, search: search == value
+        else:
+            test = lambda value, search: search in value
+            
+        result &= query[f'L{len(path_resolution) - 1}'].any(
+            (query.name == path_resolution[-1]) &
+            (query.value.test(test, value)))
+    
+    return result
 
 
 def show_nodes(paths=None, db_path="db.json"):
@@ -123,11 +216,7 @@ def show_nodes(paths=None, db_path="db.json"):
                 child_names.append(child.name)
             
             child_str = ", ".join(child_names)
-            
-            if len(child_names) == 1:
-                msg_str += f": {child_str}"
-            elif len(child_names) > 1:
-                msg_str += ": {" + child_str + "}"
+            msg_str += f": {child_str}"
             
             return msg_str
         
@@ -140,7 +229,7 @@ def show_nodes(paths=None, db_path="db.json"):
     
     if len(paths) > 2: multi_field = True
     db = DataBase(db_path, check_existing=True)
-    records = db.all()
+    records = db.to_records()
     
     msg_rows = []
     
@@ -183,11 +272,6 @@ def show_nodes(paths=None, db_path="db.json"):
         print(final_str)
 
 
-def show_records(path, value=None, exact=False, db_path="db.json"):
-    db = DataBase(db_path, check_existing=True)
-    for record in db.get(path, value, exact).values(): print(record)
-
-
 def _order_data(unordered):
     
     def key_sorter(d):
@@ -207,32 +291,6 @@ def _order_data(unordered):
         return {k: _order_data(v) for k, v in natsorted(unordered.items())}
     
     return unordered
-
-
-def _make_query(path, value=None, exact=False):
-    
-    query = Query()
-    path_resolution = path.strip('/').split('/')
-    
-    if len(path_resolution) == 1:
-        result = query['L0'].any(query.name == path_resolution[0])
-    else:
-        result = query[f'L{len(path_resolution) - 1}'].any(
-                            (query.name == path_resolution[-1]) &
-                            (query.parent == '/'.join(path_resolution[:-1])))
-    
-    if value is not None:
-        
-        if exact:
-            test = lambda value, search: search == value
-        else:
-            test = lambda value, search: search in value
-            
-        result &= query[f'L{len(path_resolution) - 1}'].any(
-            (query.name == path_resolution[-1]) &
-            (query.value.test(test, value)))
-    
-    return result
 
 
 def _get_doc_sorter(path=None, case_insenstive=True):
@@ -270,7 +328,7 @@ def _get_node_sorter(case_insenstive=True):
         if has_value:
             result = (name, value)
         else:
-            result = name
+            result = (name, None)
         
         return result
     

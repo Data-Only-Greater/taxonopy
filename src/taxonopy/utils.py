@@ -11,7 +11,7 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from openpyxl.drawing.image import Image
 
-from .db import DataBase
+from .db import JSONDataBase
 from .schema import (RecordBuilderBase,
                      SCHTree,
                      copy_node_to_record,
@@ -274,8 +274,8 @@ def get_root_value_ids(db):
 
 
 def dump_xl(out,
-            schema_path="schema.json",
-            db_path="db.json",
+            schema,
+            db,
             img_format='png',
             title_sep=":",
             value_sep=", "):
@@ -289,10 +289,7 @@ def dump_xl(out,
     # Add xlsx extension
     out += ".xlsx"
     
-    schema = SCHTree.from_json(schema_path)
-    db = DataBase(db_path, check_existing=True)
     wb = Workbook()
-    
     ws = wb.active
     ws.title = 'DataBase'
     
@@ -354,13 +351,12 @@ def dump_xl(out,
 
 def load_xl(db_path,
             xl_path,
-            schema_path="schema.json",
+            schema,
             strict=False,
             progress=False,
             title_sep=":",
             value_sep=", "):
     
-    schema = SCHTree.from_json(schema_path)
     schema_titles = _get_tree_titles(schema, sep=title_sep)
     builder = FlatRecordBuilder(schema, title_sep, value_sep)
     
@@ -381,7 +377,7 @@ def load_xl(db_path,
         err_msg = (f"Invalid {noun} '{extra_titles_str}' found")
         raise ValueError(err_msg)
     
-    with DataBase(db_path) as db:
+    with JSONDataBase(db_path) as db:
         
         root_value_ids = get_root_value_ids(db)
         
@@ -418,11 +414,8 @@ def render_tree(tree, path):
 
 
 def choice_count(path,
-                 db_path="db.json",
-                 schema_path="schema.json"):
-    
-    schema = SCHTree.from_json(schema_path)
-    db = DataBase(db_path, check_existing=True)
+                 db,
+                 schema):
     
     node = schema.find_by_path(path)
     
@@ -439,58 +432,26 @@ def choice_count(path,
     return count
 
 
-def check_dbs_equal(db_one_path,
-                    db_two_path,
-                    schema_path="schema.json",
-                    strict=False,
-                    progress=False):
+def find_non_matching_records(records_one,
+                              records_two):
     
-    def load_db_dict(db_path):
-        
-        db_name, db_extension = os.path.splitext(db_path)
-        
-        if db_extension not in [".xlsx", ".xls"]:
-            with DataBase(db_path, check_existing=True) as db:
-                return db.all()
-        
-        with tempfile.TemporaryDirectory() as tmpdirname:
-        
-            db_tempname = os.path.basename(db_name) + ".json"
-            db_temppath = os.path.join(tmpdirname, db_tempname)
-            
-            load_xl(db_temppath,
-                    db_path,
-                    schema_path=schema_path,
-                    strict=strict,
-                    progress=progress)
-            
-            with DataBase(db_temppath, check_existing=True) as db:
-                return db.all()
+    records_one_name_dict = {tree.root_node.value: tree
+                                       for tree in records_one.values()}
+    records_two_name_dict = {tree.root_node.value: tree
+                                       for tree in records_two.values()}
     
-    db_one_dict = load_db_dict(db_one_path)
-    db_two_dict = load_db_dict(db_two_path)
+    records_one_name_set = set(records_one_name_dict.keys())
+    records_two_name_set = set(records_two_name_dict.keys())
     
-    db_one_name_dict = {tree.root_node.value: tree
-                                       for tree in db_one_dict.values()}
-    db_two_name_dict = {tree.root_node.value: tree
-                                       for tree in db_two_dict.values()}
-    
-    db_one_name_set = set(db_one_name_dict.keys())
-    db_two_name_set = set(db_two_name_dict.keys())
-    
-    matching = list(db_one_name_set & db_two_name_set)
-    missing = list(db_one_name_set ^ db_two_name_set)
+    matching = list(records_one_name_set & records_two_name_set)
+    missing = list(records_one_name_set ^ records_two_name_set)
     
     for name in matching:
-        if db_one_name_dict[name] == db_two_name_dict[name]: continue
+        if records_one_name_dict[name] == records_two_name_dict[name]:
+            continue
         missing.append(name)
     
-    if not missing:
-        print("Databases are equal")
-        return
-    
-    missing_str = "\n".join(missing)
-    print(f"Differences detected in records:\n{missing_str}")
+    return missing
 
 
 def _get_tree_titles(tree, sep=":"):
