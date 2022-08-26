@@ -161,6 +161,12 @@ def show_nodes(paths, db, max_col_width=50):
         
         msg_rows.append(msgs)
     
+    # Remove columns with no msgs
+    transpose = lambda x: list(map(list, zip(*x)))
+    msg_cols = transpose(msg_rows)
+    msg_cols = [msgs for msgs in msg_cols if set(msgs) != set([None])]
+    msg_rows = transpose(msg_cols)
+    
     if not msg_rows: return
     
     def msg_width(x):
