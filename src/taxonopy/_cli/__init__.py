@@ -415,10 +415,16 @@ def _db_list(parser,context,topargs):
     
     args = parser.parse_args(topargs)
     
-    from ..db import show_nodes
+    from .db import show_nodes
+    from ..db import JSONDataBase
     
     try:
-        show_nodes(args.path, args.db)
+        db = JSONDataBase(args.db, check_existing=True)
+    except IOError:
+        print("Database not found")
+    
+    try:
+        show_nodes(args.path, db)
     except IOError:
         print("Database not found")
 

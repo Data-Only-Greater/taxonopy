@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import textwrap
 
 import inquirer
+import itertools
 from inquirer.render.console import ConsoleRender
 
 from . import CLITheme
 from .schema import CLIRecordBuilder
-from ..schema import SCHTree
-from ..db import DataBase
+from ..db import _is_iterable
 from ..utils import get_root_value_ids
 
 
@@ -122,3 +123,88 @@ def update_records(path,
             break
     
     db.close()
+
+
+def show_nodes(paths, db, max_col_width=50):
+    
+    def _get_msg(attrs):
+        
+        if not attrs: return None
+        
+        key = f"{attrs['name']}"
+        
+        if "value" in attrs:
+            value = f"{attrs['value']}"
+            return (key, value)
+        
+        if "inquire" in attrs:
+            value = ", ".join(attrs['children'])
+            return (key, value)
+        
+        return None
+    
+    if not _is_iterable(paths):
+        paths = (paths,)
+    
+    records = db.projection(paths)
+    msg_rows = []
+    
+    for record in zip(*records.values()):
+        
+        msgs = []
+        
+        for i, _ in enumerate(paths):
+            msgs.append(_get_msg(record[i+1]))
+        
+        if set(msgs) == set([None]):
+            continue
+        
+        msg_rows.append(msgs)
+    
+    if not msg_rows: return
+    
+    def msg_width(x):
+        if x is None: return 0
+        return len(x[0]) + len(x[1]) + 2
+    
+    widths = [msg_width(max(msgs, key=msg_width)) + 1
+                                              for msgs in zip(*msg_rows)]
+    widths = [x if x < max_col_width else max_col_width for x in widths]
+    
+    for msgs in msg_rows:
+        
+        wrapped_msgs = []
+        
+        for msg in msgs:
+            
+            if msg is None:
+                wrapped = []
+            else:
+                wrapped = textwrap.wrap(msg[1],
+                                        max_col_width - (len(msg[0]) + 2))
+            
+            wrapped_msgs.append(wrapped)
+        
+        total_lines = len(max(wrapped_msgs))
+        
+        for j in range(total_lines):
+            
+            final_str = ""
+            
+            for i, (msg, wrapped_msg, width) in enumerate(zip(msgs,
+                                                              wrapped_msgs,
+                                                              widths)):
+                
+                if msg is None:
+                    msg = ""
+                elif j == 0:
+                    msg = f'{msg[0]}: {wrapped_msg[0]}'
+                elif j >= len(wrapped_msg):
+                    msg = ""
+                else:
+                    msg = f'{" " * (len(msg[0]) + 2)}{wrapped_msg[j]}'
+                
+                final_str += f'{msg: <{width}}'
+                if i < len(widths) - 1: final_str += "| "
+            
+            print(final_str)
