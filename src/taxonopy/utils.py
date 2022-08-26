@@ -11,7 +11,7 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from openpyxl.drawing.image import Image
 
-from .db import JSONDataBase
+from .db import JSONDataBase, make_query
 from .schema import (RecordBuilderBase,
                      SCHTree,
                      copy_node_to_record,
@@ -297,7 +297,10 @@ def dump_xl(out,
     required = _get_tree_attrs(schema.root_node, "required", False)
     ws.append(titles)
     
-    for record in db.get(titles[0]).values():
+    query = make_query(titles[0])
+    memdb = db.search(query)
+    
+    for record in memdb.to_records().values():
         
         row_values = [None] * len(titles)
         record_titles = _get_tree_titles(record, sep=title_sep)
@@ -393,7 +396,7 @@ def load_xl(db_path,
                 db.replace(doc_id, record)
                 root_value_ids
             else:
-                db.add(record)
+                db.insert(record)
             
             if progress: print(".", end="", flush=True)
         

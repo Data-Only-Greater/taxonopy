@@ -4,12 +4,11 @@ import sys
 import textwrap
 
 import inquirer
-import itertools
 from inquirer.render.console import ConsoleRender
 
 from . import CLITheme
 from .schema import CLIRecordBuilder
-from ..db import _is_iterable
+from ..db import _is_iterable, make_query
 from ..utils import get_root_value_ids
 
 
@@ -54,7 +53,7 @@ def new_record(schema, db):
         if choice == "retry": continue
         
         if doc_id is None:
-            db.add(record)
+            db.insert(record)
         else:
             db.replace(doc_id, record)
         
@@ -72,7 +71,10 @@ def update_records(path,
     
     builder = CLIRecordBuilder(schema)
     
-    for doc_id, record in db.get(path, value, exact).items():
+    query = make_query(path, value, exact)
+    memdb = db.search(query)
+    
+    for doc_id, record in memdb.to_records().items():
         
         node = record.root_node
         message = f"Update record with {node.name} '{node.value}'?"
