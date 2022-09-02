@@ -426,10 +426,10 @@ def choice_count(path,
     if (hasattr(node, "inquire") and
         getattr(node, "inquire") not in ["list", "checkbox"]): return
     
-    count = {child.name: db.count(get_node_path(child))
+    count = {child.name: db.count(make_query(get_node_path(child)))
                                                  for child in node.children}
     
-    missing_count = db.count(path, inverse=True)
+    missing_count = db.count(~make_query(path))
     if missing_count: count["None"] = missing_count
     
     return count
