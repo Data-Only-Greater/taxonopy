@@ -395,7 +395,7 @@ def _db_show(parser,context,topargs):
     query = make_query(args.path, args.value, args.exact)
     db = db.search(query)
     
-    for record in db.to_records.values():
+    for record in db.to_records().values():
         print(record)
 
 
