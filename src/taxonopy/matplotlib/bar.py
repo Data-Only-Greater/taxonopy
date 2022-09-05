@@ -12,7 +12,12 @@ BLACK = "#202020"
 GREY = "#a2a2a2"
 
 
-def _bar(data, title=None, nticks=5, fig_width=4, fontsize=8):
+def _bar(data,
+         title=None,
+         nticks=5,
+         fig_width=4,
+         fontsize=8,
+         max_data=None):
     
     # The positions for the bars
     # This allows us to determine exactly where each bar is located
@@ -22,6 +27,19 @@ def _bar(data, title=None, nticks=5, fig_width=4, fontsize=8):
     fig_height = len(data) / 3 + header_height
     figsize = (fig_width, fig_height)
     fig, ax = plt.subplots(figsize=figsize)
+    
+    if max_data is None:
+        max_data = max(data.values())
+    
+    pad = max_data * 0.02
+    tick = math.ceil(max_data / nticks)
+    limit = (max_data // tick) + 1
+    
+    xlim = (0, tick * limit)
+    ylim = (-0.1, len(data) * 0.9 - 0.2)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    
     bar_height = 0.6
     bars = ax.barh(y,
                    data.values(),
@@ -33,22 +51,12 @@ def _bar(data, title=None, nticks=5, fig_width=4, fontsize=8):
     r = fig.canvas.get_renderer()
     bar_pixels = [bar.get_window_extent(r).width for bar in bars]
     
-    max_data = max(data.values())
-    pad = max_data * 0.02
-    tick = math.ceil(max_data / nticks)
-    limit = (max_data // tick) + 1
-    
     ax.xaxis.set_ticks([i * tick for i in range(0, limit)])
     ax.xaxis.set_ticklabels([i * tick for i in range(0, limit)],
                             size=8,
                             fontfamily="DejaVu Sans",
                             fontweight="bold")
     ax.xaxis.set_tick_params(labelbottom=False, labeltop=True, length=0)
-    
-    xlim = (0, tick * limit)
-    ylim = (-0.1, len(data) * 0.9 - 0.2)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
     
     # Set whether axis ticks and gridlines are above or below most artists.
     ax.set_axisbelow(True)
