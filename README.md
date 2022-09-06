@@ -29,7 +29,7 @@ probably work for pip, but it's currently not tested.
 1. Create a conda environment with the base dependencies:
     
     ```
-    > conda create -n _taxonopy -c conda-forge python=3.10 pip anytree blessed graphviz inquirer natsort openpyxl Pillow python-graphviz tabulate tinydb
+    > conda create -n _taxonopy -c conda-forge python=3.10 pip anytree blessed graphviz inquirer natsort openpyxl Pillow python-graphviz pyyaml tabulate tinydb
     ```
     
     Note that for Python<3.8 the `importlib_metadata` package should be added to

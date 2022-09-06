@@ -29,9 +29,9 @@ setuptools.setup(
         'natsort',
         'openpyxl',
         'Pillow',
+        'pyyaml',
         'tabulate',
-        'tinydb',
-        'pyyaml'
+        'tinydb'
     ],
     extras_require={
         'test': ['pytest', 'pytest-console-scripts']},
