@@ -457,6 +457,18 @@ def find_non_matching_records(records_one,
     return missing
 
 
+def find_non_matching_nodes(db, schema):
+    
+    result = {}
+    
+    for record in db.to_records().values():
+        added = [k for k, v in schema.diff(record).items() if v == 'added']
+        if not added: continue
+        result[record.root_node.value] = added
+    
+    return result
+
+
 def _get_tree_titles(tree, sep=":"):
     root_node = tree.root_node
     titles = [root_node.name]

@@ -6,6 +6,7 @@ import sys
 import datetime
 import tempfile
 
+import yaml
 import inquirer
 from blessed import Terminal
 from anytree.resolver import ChildResolverError
@@ -267,6 +268,51 @@ def _db_equal(parser,context,topargs):
     
     missing_str = "\n".join(missing)
     print(f"Differences detected in records:\n{missing_str}")
+
+
+@subcmd('validate',
+        dbcommands,
+        dbcommands_help,
+        help="check database records against schema")
+def _db_validate(parser,context,topargs):
+    
+    class MyDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(MyDumper, self).increase_indent(flow, False)
+    
+    parser.add_argument('--db',
+                        help='path to the database (default is ./db.json)',
+                        action="store",
+                        default="db.json")
+    parser.add_argument('--schema',
+                        help='path to the schema (default is ./schema.json)',
+                        action="store",
+                        default="schema.json")
+    
+    args = parser.parse_args(topargs)
+    
+    from ..db import JSONDataBase
+    from ..schema import SCHTree
+    from ..utils import find_non_matching_nodes
+    
+    try:
+        db = JSONDataBase(args.db, check_existing=True)
+    except IOError:
+        print("Database not found")
+    
+    try:
+        schema = SCHTree.from_json(args.schema)
+    except IOError:
+        print("Schema not found")
+    
+    result = find_non_matching_nodes(db, schema)
+    
+    if result:
+        result_str = yaml.dump(result, Dumper=MyDumper, default_flow_style=False)
+        print("\n*** Non-schema fields detected ***\n")
+        print(result_str)
+    else:
+        print("Database valid")
 
 
 @subcmd('count',

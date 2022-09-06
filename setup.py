@@ -30,7 +30,8 @@ setuptools.setup(
         'openpyxl',
         'Pillow',
         'tabulate',
-        'tinydb'
+        'tinydb',
+        'pyyaml'
     ],
     extras_require={
         'test': ['pytest', 'pytest-console-scripts']},
