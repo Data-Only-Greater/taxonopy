@@ -273,7 +273,7 @@ def _db_equal(parser,context,topargs):
 @subcmd('validate',
         dbcommands,
         dbcommands_help,
-        help="check database records against schema")
+        help="validate field names of database records")
 def _db_validate(parser,context,topargs):
     
     class MyDumper(yaml.Dumper):
