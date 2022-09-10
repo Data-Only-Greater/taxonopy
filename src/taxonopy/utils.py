@@ -270,7 +270,7 @@ class FlatRecordBuilder(RecordBuilderBase):
 
 
 def get_root_value_ids(db):
-    return {v.root_node.value: k for k, v in db.all().items()}
+    return {v.root_node.value: k for k, v in db.to_records().items()}
 
 
 def dump_xl(out,
