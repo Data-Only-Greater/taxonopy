@@ -200,6 +200,26 @@ def make_query(path, value=None, exact=False):
     return result
 
 
+def filter_unique_children(db, path):
+    
+    def check_unique(tree, path):
+        
+        try:
+            node = tree.find_by_path(path)
+        except ChildResolverError:
+            return False
+        
+        if len(node.children) == 1: return True
+        
+        return False
+    
+    unique_docs = [table.Document(value.to_dict(), doc_id=key)
+                       for key, value in db.to_records().items()
+                           if check_unique(value, path)]
+    
+    return MemoryDataBase(unique_docs)
+
+
 def _order_data(unordered):
     
     def key_sorter(d):
