@@ -51,6 +51,15 @@ def get_category_pages(site, category_name, route=None):
                                 for page in category if route in page.name]
 
 
+def compare_titles(page_titles, db):
+    
+    db_titles = [x['value'].lower() for x in db.projection('Title')['Title']]
+    matched = [x for x in page_titles if x.lower() in db_titles]
+    unmatched = list(set(page_titles) - set(matched))
+    
+    return matched, unmatched
+
+
 def page_to_fields(page):
     
     result = re.search(r'{{(.*?)}}', page, flags=re.DOTALL)
@@ -59,6 +68,43 @@ def page_to_fields(page):
     fields = {k: v for k, v in [record.split("=") for record in records]}
     
     return fields
+
+
+async def upload_records_to_site(db,
+                                 site,
+                                 route,
+                                 skip_category=None,
+                                 skip=None,
+                                 dry_run=False):
+    
+    if skip is None: skip = []
+    if skip_category is not None:
+        names = get_category_pages(site, skip_category, route)
+        matched, _ = compare_titles(names, db)
+        skip += matched
+    
+    for record in db.to_records().values():
+        
+        title, fields = title_and_fields_from_record(record)
+        
+        if title in skip:
+            print(f"Skipping matching title {title}")
+            continue
+        
+        if fields["URI"] == "Unknown":
+            print(f"{title} has no URI. Skipping.")
+            continue
+        
+        await update_fields_from_github(fields)
+        text = fields_to_page(fields)
+        
+        print(f"Loading {title} to {route + title}")
+        
+        if not dry_run:
+            page = site.pages[route + title]
+            page.edit(text, f'Add {title}')
+        
+        print("Success")
 
 
 def title_and_fields_from_record(record):
