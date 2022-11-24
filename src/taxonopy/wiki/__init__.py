@@ -97,7 +97,9 @@ async def upload_records_to_site(db,
                                  route,
                                  skip_category=None,
                                  skip=None,
-                                 dry_run=False):
+                                 token=None,
+                                 dry_run=False,
+                                 print_errors=True):
     
     if skip is None: skip = []
     if skip_category is not None:
@@ -117,8 +119,13 @@ async def upload_records_to_site(db,
             print(f"{title} has no URI. Skipping.")
             continue
         
-        await update_fields_from_github(fields)
+        errors = await update_fields_from_github(fields, token=token)
         text = fields_to_wikitext(fields)
+        
+        if print_errors and errors:
+            print("GitHub errors:")
+            for error in errors:
+                print(f"+   {error}")
         
         print(f"Loading {title} to {route + title}")
         
@@ -235,22 +242,27 @@ def get_languages(record):
     return languages
 
 
-async def update_fields_from_github(fields):
+async def update_fields_from_github(fields, token=None):
     
     if not confirm_GitHub(fields['URI']):
-        return
+        return []
     
     uri_details = parse_URI(fields['URI'])
-    result = await fetch_GitHub(uri_details)
+    result, errors = await fetch_GitHub(uri_details, token)
     
-    fields['description'] = result['description']
-    fields['tags'] = list(set(fields['tags']) | set(result['topics']))
+    if result['description']:
+        fields['description'] = result['description']
+    
+    if result['topics']:
+        fields['tags'] = list(set(fields['tags']) | set(result['topics']))
     
     if result['created']:
         fields['originationDate'] = result['created'].strftime("%Y/%m/%d")
     
     if result['version']:
         fields['version'] = result['version']
+    
+    return errors
 
 
 def fields_to_wikitext(fields, existing=None):

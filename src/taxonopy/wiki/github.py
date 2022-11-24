@@ -11,10 +11,16 @@ async def get(session: aiohttp.ClientSession,
     
     route = "/".join(args)
     url = f"https://api.github.com/repos/{route}"
-    resp = await session.request('GET', url=url, **kwargs)
-    data = await resp.json()
     
-    return data
+    async with session.request('GET', url=url, **kwargs) as resp:
+        
+        data = await resp.json()
+        
+        if resp.ok:
+            return data
+        
+        raise RuntimeError(f"{data['message']} on {url}")
+
 
 
 async def main(paths, **kwargs):
@@ -39,9 +45,11 @@ def parse_URI(uri):
             "reponame": splitURI[4]}
 
 
-async def fetch_GitHub(uri_details):
+async def fetch_GitHub(uri_details, token=None):
     
     headers = {"Accept": "application/vnd.github+json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
     
     base = [uri_details["username"], uri_details["reponame"]]
     routes = [base,
@@ -50,20 +58,38 @@ async def fetch_GitHub(uri_details):
     
     results = await main(routes, headers=headers)
     
-    data = {"description": results[0].get("description", ""),
-            "created": '',
-            "languages": list(results[1].keys()),
-            "licenses": '',
-            "topics": results[0].get("topics", ""),
-            "version": results[2].get('name', "")}
+    data = {"description": "",
+            "created": "",
+            "languages": "",
+            "licenses": "",
+            "topics": "",
+            "version": ""}
+    errors = []
     
-    created = results[0].get("created_at")
-    if created is not None:
-        data["created"] = datetime.datetime.strptime(created,
-                                                 '%Y-%m-%dT%H:%M:%SZ')
+    if isinstance(results[0], RuntimeError):
+        errors.append(results[0])
+    else:
+        
+        data["description"] =  results[0]["description"]
+        data["topics"] =  results[0]["topics"]
+        
+        created = results[0].get("created_at")
+        if created is not None:
+            data["created"] = datetime.datetime.strptime(created,
+                                                    '%Y-%m-%dT%H:%M:%SZ')
+        
+        if results[0].get("licenses"):
+            data["licenses"] = [license["name"]
+                                    for license in results[0].get("licenses")]
     
-    if results[0].get("licenses"):
-        data["licenses"] = [license["name"]
-                                for license in results[0].get("licenses")]
+    if isinstance(results[1], RuntimeError):
+        errors.append(results[1])
+    else:
+        data["languages"] = list(results[1].keys())
     
-    return data
+    if isinstance(results[2], RuntimeError):
+        errors.append(results[2])
+    else:
+        data["version"] = results[2]["name"]
+    
+    return data, errors
