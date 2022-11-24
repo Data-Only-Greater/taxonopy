@@ -51,16 +51,21 @@ def get_category_pages(site, category_name, route=None):
                                 for page in category if route in page.name]
 
 
-def compare_titles(page_titles, db, out="page"):
+def compare_titles(page_titles, db, out="page", case_sensitive=False):
+    
+    if not case_sensitive:
+        caser = lambda x: x.lower()
+    else:
+        caser = lambda x: x
     
     db_titles = [x['value'] for x in db.projection('Title')['Title']]
-    db_titles_low = [x.lower() for x in db_titles]
+    db_titles_case = [caser(x) for x in db_titles]
     
-    matched_page = [x for x in page_titles if x.lower() in db_titles_low]
+    matched_page = [x for x in page_titles if caser(x) in db_titles_case]
     matched_page_uscore = [x for x in page_titles
-                            if x.lower().replace(" ", "_") in db_titles_low]
-    matched_idxs = [db_titles_low.index(x.lower()) for x in matched_page]
-    matched_idxs += [db_titles_low.index(x.lower().replace(" ", "_"))
+                            if caser(x).replace(" ", "_") in db_titles_case]
+    matched_idxs = [db_titles_case.index(caser(x)) for x in matched_page]
+    matched_idxs += [db_titles_case.index(caser(x).replace(" ", "_"))
                                                 for x in matched_page_uscore]
     matched_page += matched_page_uscore
     matched_db = [db_titles[i] for i in matched_idxs]
@@ -113,7 +118,7 @@ async def upload_records_to_site(db,
             continue
         
         await update_fields_from_github(fields)
-        text = fields_to_page(fields)
+        text = fields_to_wikitext(fields)
         
         print(f"Loading {title} to {route + title}")
         
