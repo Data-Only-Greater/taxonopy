@@ -240,7 +240,7 @@ def get_languages(record):
     
     for lang in top:
         languages.append(LANGUAGE_MAP[lang])
-               
+    
     return languages
 
 

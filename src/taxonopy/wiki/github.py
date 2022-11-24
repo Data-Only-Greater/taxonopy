@@ -22,7 +22,6 @@ async def get(session: aiohttp.ClientSession,
         raise RuntimeError(f"{data['message']} on {url}")
 
 
-
 async def main(paths, **kwargs):
     
     async with aiohttp.ClientSession() as session:
