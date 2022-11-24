@@ -51,18 +51,35 @@ def get_category_pages(site, category_name, route=None):
                                 for page in category if route in page.name]
 
 
-def compare_titles(page_titles, db):
+def compare_titles(page_titles, db, out="page"):
     
-    db_titles = [x['value'].lower() for x in db.projection('Title')['Title']]
-    matched = [x for x in page_titles if x.lower() in db_titles]
-    unmatched = list(set(page_titles) - set(matched))
+    db_titles = [x['value'] for x in db.projection('Title')['Title']]
+    db_titles_low = [x.lower() for x in db_titles]
     
-    return matched, unmatched
+    matched_page = [x for x in page_titles if x.lower() in db_titles_low]
+    matched_page_uscore = [x for x in page_titles
+                            if x.lower().replace(" ", "_") in db_titles_low]
+    matched_idxs = [db_titles_low.index(x.lower()) for x in matched_page]
+    matched_idxs += [db_titles_low.index(x.lower().replace(" ", "_"))
+                                                for x in matched_page_uscore]
+    matched_page += matched_page_uscore
+    matched_db = [db_titles[i] for i in matched_idxs]
+    
+    unmatched_page = list(set(page_titles) - set(matched_page))
+    unmatched_db = list(set(db_titles) - set(matched_db))
+    
+    if out == "page":
+        return matched_page, unmatched_page
+    
+    if out != "db":
+        raise ValueError("'out' argument can be 'page' or 'db'")
+    
+    return matched_db, unmatched_db
 
 
-def page_to_fields(page):
+def wikitext_to_fields(wikitext):
     
-    result = re.search(r'{{(.*?)}}', page, flags=re.DOTALL)
+    result = re.search(r'{{(.*?)}}', wikitext, flags=re.DOTALL)
     data = result.group(1)
     records = [record.rstrip() for record in data.split('|')[1:]]
     fields = {k: v for k, v in [record.split("=") for record in records]}
@@ -80,7 +97,7 @@ async def upload_records_to_site(db,
     if skip is None: skip = []
     if skip_category is not None:
         names = get_category_pages(site, skip_category, route)
-        matched, _ = compare_titles(names, db)
+        matched, _ = compare_titles(names, db, out="db")
         skip += matched
     
     for record in db.to_records().values():
@@ -165,7 +182,7 @@ def title_and_fields_from_record(record):
     
     fields["mreDatasubtype"] = entry_type
     fields["description"] = ""
-    fields['originationDate'] = "Unknown"
+    fields['originationDate'] = ""
     fields['version'] = "Unknown"
     
     return title, fields
@@ -231,16 +248,16 @@ async def update_fields_from_github(fields):
         fields['version'] = result['version']
 
 
-def fields_to_page(fields, page=None):
+def fields_to_wikitext(fields, existing=None):
     
     str_fields = {k: ", ".join(v) if isinstance(v, list) else v
                                                 for k, v in fields.items()}
     records = "\n".join([f"|{k}={v}" for k, v in str_fields.items()])
     data = "{{MRE Code\n" + records + "\n}}"
     
-    if page is None:
-        page = data + "\n"
+    if existing is None:
+        wikitext = data + "\n"
     else:
-        page = re.sub(r'{{(.*?)}}', data, page, flags=re.DOTALL)
+        wikitext = re.sub(r'{{(.*?)}}', data, existing, flags=re.DOTALL)
     
-    return page
+    return wikitext
