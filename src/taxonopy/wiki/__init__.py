@@ -37,6 +37,7 @@ LANGUAGE_MAP = {'C': 'Other',
                 'Python': 'Python',
                 'R': 'Other'}
 
+
 def get_category_pages(site, category_name, route=None):
     
     category = site.categories[category_name]
@@ -159,7 +160,7 @@ def title_and_fields_from_record(record):
     
     if "Developer" in root_children_names:
         fields["author"] = record.find_by_path("Title/Developer").value
-
+    
     if "Technology" in root_children_names:
         tech = [child.name
                 for child in record.find_by_path("Title/Technology").children]
@@ -214,10 +215,10 @@ def get_licenses(record):
     for lic in top:
         if lic == "Open-Source": continue
         licenses.append(LICENSE_MAP[lic])
-            
+    
     if "Open-Source" not in top:
         return licenses
-        
+    
     os = [child.name
                 for child in get_children("Title/License Type/Open-Source")]
     
