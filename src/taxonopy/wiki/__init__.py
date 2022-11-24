@@ -58,11 +58,12 @@ def compare_titles(page_titles, db, out="page", case_sensitive=False):
     else:
         caser = lambda x: x
     
+    pages_titles_with_spaces = [x for x in page_titles if ' ' in x]
     db_titles = [x['value'] for x in db.projection('Title')['Title']]
     db_titles_case = [caser(x) for x in db_titles]
     
     matched_page = [x for x in page_titles if caser(x) in db_titles_case]
-    matched_page_uscore = [x for x in page_titles
+    matched_page_uscore = [x for x in pages_titles_with_spaces
                             if caser(x).replace(" ", "_") in db_titles_case]
     matched_idxs = [db_titles_case.index(caser(x)) for x in matched_page]
     matched_idxs += [db_titles_case.index(caser(x).replace(" ", "_"))
