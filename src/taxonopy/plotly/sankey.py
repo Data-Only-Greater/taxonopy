@@ -4,6 +4,8 @@ from itertools import chain, product
 
 import plotly.graph_objects as go
 
+from ..db import make_query
+
 
 class Sankey():
     
@@ -93,7 +95,9 @@ class Sankey():
         names_lookup = {}
     
         for k in names.keys():
-            names_lookup[k] = self._db.get(k).keys()
+            query = make_query(k)
+            memdb = self._db.search(query)
+            names_lookup[k] = memdb.to_records().keys()
             
         return names_lookup
 

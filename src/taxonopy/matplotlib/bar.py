@@ -17,7 +17,8 @@ def _bar(data,
          nticks=5,
          fig_width=4,
          fontsize=8,
-         max_data=None):
+         max_data=None,
+         round_tick=None):
     
     # The positions for the bars
     # This allows us to determine exactly where each bar is located
@@ -33,6 +34,10 @@ def _bar(data,
     
     pad = max_data * 0.02
     tick = math.ceil(max_data / nticks)
+    
+    if round_tick is not None:
+        tick = round_tick * math.ceil(tick / round_tick)
+    
     limit = (max_data // tick) + 1
     
     xlim = (0, tick * limit)
