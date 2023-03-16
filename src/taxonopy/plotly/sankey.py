@@ -13,7 +13,7 @@ class Sankey():
         self._schema = schema
         self._db = db
 
-    def __call__(self, apath, bpath, cpath=None):
+    def __call__(self, apath, bpath, cpath=None, annotation_y=1.1):
         
         aranks, anames = self.get_ranks_names(apath, 0)
         branks, bnames = self.get_ranks_names(bpath, 1)
@@ -67,7 +67,7 @@ class Sankey():
         for x, text in zip(column_x, column_text):
           fig.add_annotation(
                   x=x,
-                  y=1.1,
+                  y=annotation_y,
                   text=text,
                   showarrow=False,
                   font=dict(
