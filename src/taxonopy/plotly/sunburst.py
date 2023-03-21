@@ -17,6 +17,7 @@ class Sunburst():
     
     def from_paths(self, *paths, include_root=False):
         
+        [self._schema.find_by_path(path) for path in paths]
         proj = self._db.projection(paths)
         data = defaultdict(list)
         
