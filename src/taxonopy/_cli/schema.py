@@ -236,7 +236,7 @@ class CLIRecordBuilder(RecordBuilderBase):
             
             # Filter children against choices
             if children:
-                default = set(choices) & set(children)
+                default = list(set(choices) & set(children))
                 if not default: default = None
         
         while True:

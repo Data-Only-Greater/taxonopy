@@ -40,13 +40,8 @@ LANGUAGE_MAP = {'C': 'Other',
 
 def get_category_pages(site, category_name, route=None):
     
+    if route is None: route = ""
     category = site.categories[category_name]
-    
-    if route is None:
-        route = ""
-        test = lambda x: True
-    else:
-        test = lambda x: route in x.name
     
     return [page.name.replace(route, "")
                                 for page in category if route in page.name]
