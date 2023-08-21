@@ -2,10 +2,14 @@
 
 import os
 import tempfile
-import importlib
+from pathlib import Path
 
+import yaml
 import graphviz
+from yaml import dump
 from anytree import PreOrderIter
+from anytree.exporter import DictExporter
+from slugify import slugify
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -269,6 +273,11 @@ class FlatRecordBuilder(RecordBuilderBase):
                                    if x.path != self._schema.root_node.path])
 
 
+class IndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(IndentDumper, self).increase_indent(flow, False)
+
+
 def get_root_value_ids(db):
     return {v.root_node.value: k for k, v in db.to_records().items()}
 
@@ -403,6 +412,70 @@ def load_xl(db_path,
         db.remove(root_value_ids.values())
         
         if progress: print("\n", end="", flush=True)
+
+
+def dump_yaml(db, out=None):
+    
+    def export(record, outp):
+        
+        exported = convert_record(record)
+        title = exported["Title"]
+        
+        if outp is None:
+            print(dump(exported,
+                       Dumper=IndentDumper,
+                       default_flow_style=False))
+            return
+            
+        fpath = outp / (slugify(title) + ".yaml")
+        fcount = 1
+        
+        while fpath.exists():
+            fpath = outp / (slugify(title + str(fcount)) + ".yaml")
+            fcount += 1
+        
+        with open(fpath, 'w') as f:
+            dump(exported, f, Dumper=IndentDumper, default_flow_style=False)
+    
+    outp = None
+    if out: outp = Path(out)
+    
+    records = db.to_records()
+    
+    for record in records.values():
+        export(record, outp)
+
+
+def convert_child(child):
+    
+    if 'inquire' in child and child['inquire'] in ['list', 'checkbox']:
+        
+        if 'value' in child:
+            raise NotImplementedError("Conversion of node with value and "
+                                      "children not implemented")
+        
+        key = child['name']
+        value = [convert_child(grandchild) for grandchild in child['children']]
+        return {key: value}
+    
+    elif 'value' in child:
+        key = child['name']
+        value = child['value']
+        return {key: value}
+    
+    return child['name']
+
+
+def convert_record(record):
+    
+    exporter = DictExporter()
+    exported = exporter.export(record.root_node)
+    result = {"Title": exported['value']}
+    
+    for child in exported['children']:
+        result.update(convert_child(child))
+    
+    return result
 
 
 def render_tree(tree, path):
