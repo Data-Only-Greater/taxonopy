@@ -84,7 +84,7 @@ def wikitext_to_fields(wikitext):
     result = re.search(r'{{(.*?)}}', wikitext, flags=re.DOTALL)
     data = result.group(1)
     records = [record.rstrip() for record in data.split('|')[1:]]
-    fields = {k: v for k, v in [record.split("=") for record in records]}
+    fields = {k: v for k, v in [record.split("=", 1) for record in records]}
     
     return fields
 
